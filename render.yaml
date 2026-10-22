@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: employee-attrition-api
+    runtime: docker
+    plan: free
+    rootDir: .
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    envVars:
+      - key: API_KEY
+        sync: false

@@ -1,0 +1,9 @@
+__pycache__/
+*.py[cod]
+/data/
+/results/*
+!/results/full_pipeline/
+/results/full_pipeline/*
+!/results/full_pipeline/models/
+/results/full_pipeline/models/*
+!/results/full_pipeline/models/*.pkl
