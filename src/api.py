@@ -6,7 +6,7 @@ from typing import Literal
 import joblib
 import pandas as pd
 from fastapi import Depends, FastAPI, Header, HTTPException
-from fastapi.responses import RedirectResponse
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 
@@ -132,12 +132,12 @@ def predict_with_model(model_name: str, employee: Employee) -> dict[str, str | f
     }
 
 
-app = FastAPI(title="Employee Attrition Prediction API", version="1.1.0")
+app = FastAPI(title="Employee Attrition Prediction API", version="1.2.0")
 
 
 @app.get("/", include_in_schema=False)
-def home() -> RedirectResponse:
-    return RedirectResponse(url="/docs")
+def home() -> FileResponse:
+    return FileResponse(ROOT / "src" / "dashboard.html")
 
 
 @app.get("/health")

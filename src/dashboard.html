@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f3f6f3">
+  <title>Employee Attrition | Prediction</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #1c302c;
+      --muted: #65746f;
+      --line: #dce5df;
+      --paper: #ffffff;
+      --wash: #f3f6f3;
+      --green: #14745e;
+      --green-dark: #0e5647;
+      --green-pale: #e5f2ec;
+      --coral: #bc5d4d;
+      --shadow: 0 18px 50px rgb(29 54 43 / 8%);
+      font-family: "Aptos", "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--wash); color: var(--ink); }
+    button, input, select { font: inherit; }
+    button, a, input, select { -webkit-tap-highlight-color: transparent; }
+
+    .topbar {
+      height: 68px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 clamp(20px, 5vw, 72px);
+      background: var(--paper);
+      border-bottom: 1px solid var(--line);
+    }
+    .brand { display: flex; align-items: center; gap: 11px; font-weight: 700; }
+    .brand-mark {
+      width: 30px; height: 30px; display: grid; place-items: center;
+      border-radius: 9px; background: var(--green); color: white; font-size: 15px;
+    }
+    .brand-name { font-size: 14px; letter-spacing: .02em; }
+    .top-link { color: var(--muted); font-size: 13px; text-decoration: none; }
+    .top-link:hover { color: var(--green-dark); }
+
+    main { max-width: 1240px; margin: 0 auto; padding: 42px clamp(18px, 4vw, 54px) 60px; }
+    .page-head { display: flex; justify-content: space-between; align-items: end; gap: 24px; margin-bottom: 26px; }
+    .eyebrow { margin: 0 0 8px; color: var(--green); font-size: 11px; font-weight: 750; text-transform: uppercase; letter-spacing: .13em; }
+    h1 { margin: 0; font-size: clamp(27px, 3vw, 35px); line-height: 1.15; font-weight: 680; letter-spacing: -.025em; }
+    .intro { margin: 9px 0 0; max-width: 600px; color: var(--muted); font-size: 14px; line-height: 1.55; }
+    .ready { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 8px; color: var(--green-dark); background: var(--green-pale); border-radius: 999px; padding: 8px 12px; font-size: 12px; font-weight: 650; }
+    .ready-dot { width: 7px; height: 7px; background: #29936e; border-radius: 50%; }
+
+    .layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 22px; align-items: start; }
+    .form-panel, .result-panel { background: var(--paper); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); }
+    .form-panel { padding: 26px 30px 24px; }
+    .section + .section { margin-top: 25px; padding-top: 23px; border-top: 1px solid var(--line); }
+    .section-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 16px; }
+    .section-number { color: #93a39c; font-size: 11px; font-variant-numeric: tabular-nums; }
+    h2 { margin: 0; font-size: 15px; font-weight: 700; }
+    .fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 15px 16px; }
+    .field { min-width: 0; }
+    label { display: block; margin-bottom: 7px; color: #53645e; font-size: 12px; font-weight: 620; }
+    input, select {
+      width: 100%; height: 42px; padding: 0 11px; border: 1px solid #d6e0d9;
+      border-radius: 6px; color: var(--ink); background: #fff; font-size: 13px; outline: none;
+    }
+    input:focus, select:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgb(20 116 94 / 12%); }
+    input::placeholder { color: #9aa7a1; }
+    .api-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: end; margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--line); }
+    .api-field label { display: flex; align-items: center; gap: 7px; }
+    .api-help { color: #88968f; font-size: 11px; font-weight: 450; }
+    .primary {
+      min-width: 158px; height: 42px; display: inline-flex; justify-content: center; align-items: center; gap: 9px;
+      padding: 0 16px; border: 0; border-radius: 6px; background: var(--green); color: #fff;
+      font-size: 13px; font-weight: 680; cursor: pointer; transition: background .15s ease, transform .15s ease;
+    }
+    .primary:hover { background: var(--green-dark); transform: translateY(-1px); }
+    .primary:disabled { opacity: .65; cursor: wait; transform: none; }
+    .button-arrow { font-size: 16px; line-height: 1; }
+
+    .result-panel { position: sticky; top: 22px; overflow: hidden; }
+    .result-top { padding: 21px 22px 19px; border-bottom: 1px solid var(--line); }
+    .result-label { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .result-label h2 { font-size: 14px; }
+    .model-tag { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 11px; }
+    .result-body { min-height: 245px; padding: 24px 22px; }
+    .empty-state { display: grid; min-height: 195px; align-content: center; justify-items: start; }
+    .empty-icon { width: 38px; height: 38px; display: grid; place-items: center; margin-bottom: 14px; border-radius: 10px; color: var(--green); background: var(--green-pale); font-size: 18px; }
+    .empty-title { margin: 0 0 6px; font-size: 14px; font-weight: 680; }
+    .empty-copy { max-width: 225px; margin: 0; color: var(--muted); font-size: 12px; line-height: 1.55; }
+    .prediction { display: none; }
+    .prediction.show { display: block; }
+    .prediction-status { display: inline-flex; margin-bottom: 12px; padding: 6px 9px; border-radius: 5px; color: var(--green-dark); background: var(--green-pale); font-size: 11px; font-weight: 700; }
+    .prediction-status.leave { color: #963e35; background: #fae9e5; }
+    .probability { margin: 2px 0 3px; font-size: 47px; line-height: 1; font-weight: 680; font-variant-numeric: tabular-nums; letter-spacing: -.035em; }
+    .probability-caption { margin: 0; color: var(--muted); font-size: 12px; }
+    .meter { height: 7px; margin: 19px 0 18px; overflow: hidden; border-radius: 99px; background: #e9efeb; }
+    .meter-fill { height: 100%; width: 0; border-radius: inherit; background: var(--green); transition: width .5s ease; }
+    .meter-fill.leave { background: var(--coral); }
+    .result-meta { display: flex; justify-content: space-between; padding-top: 13px; border-top: 1px solid var(--line); color: var(--muted); font-size: 11px; }
+    .result-meta strong { color: var(--ink); font-weight: 650; }
+    .error { display: none; margin-top: 14px; padding: 11px 12px; border-left: 3px solid var(--coral); color: #843f35; background: #fff4f1; font-size: 12px; line-height: 1.45; }
+    .error.show { display: block; }
+    .footnote { margin: 15px 0 0; color: #7a8982; font-size: 11px; line-height: 1.5; }
+    .status-line { min-height: 16px; margin-top: 9px; color: var(--muted); font-size: 11px; }
+
+    @media (max-width: 850px) {
+      main { padding-top: 30px; }
+      .layout { grid-template-columns: minmax(0, 1fr) 270px; gap: 14px; }
+      .form-panel { padding: 22px; }
+      .fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 650px) {
+      .topbar { height: 60px; padding: 0 17px; }
+      main { padding: 26px 14px 38px; }
+      .page-head { align-items: start; flex-direction: column; gap: 14px; margin-bottom: 19px; }
+      .layout { grid-template-columns: 1fr; }
+      .result-panel { grid-row: 1; position: static; }
+      .result-body { min-height: 0; padding: 18px 20px; }
+      .empty-state { min-height: 115px; }
+      .empty-icon { display: none; }
+      .fields { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px 11px; }
+      .form-panel { padding: 20px 16px; }
+      .api-row { grid-template-columns: 1fr; }
+      .primary { width: 100%; }
+    }
+    @media (max-width: 380px) { .fields { grid-template-columns: 1fr; } }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; } }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark" aria-hidden="true">A</span><span class="brand-name">People Analytics</span></div>
+    <a class="top-link" href="/docs">API documentation <span aria-hidden="true">↗</span></a>
+  </header>
+
+  <main>
+    <div class="page-head">
+      <div>
+        <p class="eyebrow">Employee attrition</p>
+        <h1>Prediction workspace</h1>
+        <p class="intro">Enter an employee profile to see how a selected model estimates attrition likelihood.</p>
+      </div>
+      <div class="ready"><span class="ready-dot"></span><span id="model-count">Loading models</span></div>
+    </div>
+
+    <div class="layout">
+      <form id="employee-form" class="form-panel">
+        <section class="section">
+          <div class="section-head"><span class="section-number">01</span><h2>Employee profile</h2></div>
+          <div class="fields">
+            <div class="field"><label for="Age">Age</label><input id="Age" name="Age" type="number" min="18" max="100" value="41" required></div>
+            <div class="field"><label for="MaritalStatus">Marital status</label><select id="MaritalStatus" name="MaritalStatus"><option>Single</option><option>Married</option><option>Divorced</option></select></div>
+            <div class="field"><label for="MonthlyIncome">Monthly income</label><input id="MonthlyIncome" name="MonthlyIncome" type="number" min="0" step="1" value="5993" required></div>
+            <div class="field"><label for="StockOptionLevel">Stock option level</label><select id="StockOptionLevel" name="StockOptionLevel"><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></div>
+            <div class="field"><label for="YearsWithCurrManager">Years with current manager</label><input id="YearsWithCurrManager" name="YearsWithCurrManager" type="number" min="0" max="50" value="5" required></div>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-head"><span class="section-number">02</span><h2>Role &amp; work</h2></div>
+          <div class="fields">
+            <div class="field"><label for="Department">Department</label><select id="Department" name="Department"><option>Sales</option><option>Research &amp; Development</option><option>Human Resources</option></select></div>
+            <div class="field"><label for="JobRole">Job role</label><select id="JobRole" name="JobRole"><option>Sales Executive</option><option>Healthcare Representative</option><option>Human Resources</option><option>Laboratory Technician</option><option>Manager</option><option>Manufacturing Director</option><option>Research Director</option><option>Research Scientist</option><option>Sales Representative</option></select></div>
+            <div class="field"><label for="JobLevel">Job level</label><select id="JobLevel" name="JobLevel"><option value="1">1</option><option value="2" selected>2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></div>
+            <div class="field"><label for="BusinessTravel">Business travel</label><select id="BusinessTravel" name="BusinessTravel"><option>Travel_Rarely</option><option>Travel_Frequently</option><option>Non-Travel</option></select></div>
+            <div class="field"><label for="OverTime">Overtime</label><select id="OverTime" name="OverTime"><option>Yes</option><option>No</option></select></div>
+            <div class="field"><label for="JobInvolvement">Job involvement</label><select id="JobInvolvement" name="JobInvolvement"><option value="1">1 · Low</option><option value="2">2</option><option value="3" selected>3</option><option value="4">4 · High</option></select></div>
+            <div class="field"><label for="WorkLifeBalance">Work-life balance</label><select id="WorkLifeBalance" name="WorkLifeBalance"><option value="1">1 · Low</option><option value="2">2</option><option value="3">3</option><option value="4">4 · High</option></select></div>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-head"><span class="section-number">03</span><h2>Satisfaction</h2></div>
+          <div class="fields">
+            <div class="field"><label for="JobSatisfaction">Job satisfaction</label><select id="JobSatisfaction" name="JobSatisfaction"><option value="1">1 · Low</option><option value="2">2</option><option value="3">3</option><option value="4" selected>4 · High</option></select></div>
+            <div class="field"><label for="EnvironmentSatisfaction">Environment satisfaction</label><select id="EnvironmentSatisfaction" name="EnvironmentSatisfaction"><option value="1">1 · Low</option><option value="2" selected>2</option><option value="3">3</option><option value="4">4 · High</option></select></div>
+            <div class="field"><label for="RelationshipSatisfaction">Relationship satisfaction</label><select id="RelationshipSatisfaction" name="RelationshipSatisfaction"><option value="1" selected>1 · Low</option><option value="2">2</option><option value="3">3</option><option value="4">4 · High</option></select></div>
+          </div>
+        </section>
+
+        <div class="api-row">
+          <div class="field api-field">
+            <label for="api-key">Access key <span class="api-help">from Render environment settings</span></label>
+            <input id="api-key" type="password" autocomplete="off" placeholder="Paste API key" required>
+          </div>
+          <button id="predict-button" class="primary" type="submit"><span>Run prediction</span><span class="button-arrow" aria-hidden="true">→</span></button>
+        </div>
+        <div id="request-status" class="status-line" role="status" aria-live="polite"></div>
+      </form>
+
+      <aside class="result-panel" aria-live="polite">
+        <div class="result-top">
+          <div class="result-label"><h2>Assessment</h2><span id="selected-model" class="model-tag">Logistic Regression</span></div>
+        </div>
+        <div class="result-body">
+          <div id="empty-state" class="empty-state">
+            <div class="empty-icon" aria-hidden="true">↗</div>
+            <p class="empty-title">Ready when you are</p>
+            <p class="empty-copy">Complete the profile and run a prediction to see the model estimate here.</p>
+          </div>
+          <div id="prediction" class="prediction">
+            <span id="prediction-status" class="prediction-status"></span>
+            <p id="probability" class="probability">0%</p>
+            <p class="probability-caption">Estimated attrition likelihood</p>
+            <div class="meter" role="meter" aria-label="Attrition likelihood" aria-valuemin="0" aria-valuemax="100"><div id="meter-fill" class="meter-fill"></div></div>
+            <div class="result-meta"><span>Model threshold</span><strong id="threshold">50%</strong></div>
+            <div id="error-message" class="error" role="alert"></div>
+          </div>
+        </div>
+        <p class="footnote" style="margin: 0 22px 20px">Predictions are estimates for decision support, not a determination about an individual.</p>
+      </aside>
+    </div>
+  </main>
+
+  <script>
+    const form = document.querySelector('#employee-form');
+    const button = document.querySelector('#predict-button');
+    const statusLine = document.querySelector('#request-status');
+    const resultPanel = document.querySelector('#prediction');
+    const emptyState = document.querySelector('#empty-state');
+    const modelTag = document.querySelector('#selected-model');
+    const modelNames = {
+      et_base: 'Extra Trees', etpluscatboost: 'Extra Trees + CatBoost',
+      etpluslightgbm: 'Extra Trees + LightGBM', gb_base: 'Gradient Boosting',
+      gb_tuned_balanced_accuracy: 'Gradient Boosting · Balanced accuracy',
+      gb_tuned_f1: 'Gradient Boosting · F1 tuned', gb_tuned_pr_auc: 'Gradient Boosting · PR-AUC tuned',
+      gb_tuned_recall: 'Gradient Boosting · Recall tuned', gb_tuned_roc_auc: 'Gradient Boosting · ROC-AUC tuned',
+      lr_base: 'Logistic Regression', rf_base: 'Random Forest', rfplusadaboost: 'Random Forest + AdaBoost',
+      rfpluslightgbm: 'Random Forest + LightGBM', stacking_ensemble: 'Stacking ensemble',
+      svm_base: 'Support Vector Machine', voting_ensemble: 'Voting ensemble', xgb_base: 'XGBoost'
+    };
+    const modelSelect = document.createElement('select');
+    modelSelect.id = 'model-select';
+    modelSelect.setAttribute('aria-label', 'Prediction model');
+    modelSelect.style.cssText = 'height:28px;max-width:170px;padding:0 7px;border:1px solid #d6e0d9;border-radius:5px;color:#53645e;background:white;font-size:11px';
+    document.querySelector('.result-label').append(modelSelect);
+    modelTag.remove();
+
+    fetch('/models').then(response => response.json()).then(data => {
+      modelSelect.replaceChildren(...data.models.map(model => {
+        const option = document.createElement('option');
+        option.value = model.id;
+        option.textContent = modelNames[model.id] || model.id;
+        return option;
+      }));
+      modelSelect.value = data.default_model;
+      document.querySelector('#model-count').textContent = `${data.models.length} models ready`;
+    }).catch(() => { document.querySelector('#model-count').textContent = 'Models unavailable'; });
+
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+      if (!form.reportValidity()) return;
+      button.disabled = true;
+      button.querySelector('span').textContent = 'Working…';
+      statusLine.textContent = 'Running the selected model';
+      document.querySelector('#error-message').classList.remove('show');
+      try {
+        const values = Object.fromEntries(new FormData(form).entries());
+        const payload = Object.fromEntries(Object.entries(values).map(([key, value]) => [
+          key, ['Age','MonthlyIncome','StockOptionLevel','YearsWithCurrManager','JobLevel','JobInvolvement','WorkLifeBalance','JobSatisfaction','EnvironmentSatisfaction','RelationshipSatisfaction'].includes(key) ? Number(value) : value
+        ]));
+        delete payload['api-key'];
+        const response = await fetch(`/predict/${encodeURIComponent(modelSelect.value)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${document.querySelector('#api-key').value}` },
+          body: JSON.stringify(payload)
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(response.status === 401 ? 'That access key was not accepted. Check the API_KEY in Render settings.' : result.detail || 'Prediction could not be completed.');
+        const percent = Math.round(result.attrition_probability * 100);
+        const leaving = result.prediction === 'Yes';
+        emptyState.style.display = 'none';
+        resultPanel.classList.add('show');
+        document.querySelector('#prediction-status').textContent = leaving ? 'Higher likelihood' : 'Lower likelihood';
+        document.querySelector('#prediction-status').classList.toggle('leave', leaving);
+        document.querySelector('#probability').textContent = `${percent}%`;
+        document.querySelector('#meter-fill').style.width = `${percent}%`;
+        document.querySelector('#meter-fill').classList.toggle('leave', leaving);
+        document.querySelector('.meter').setAttribute('aria-valuenow', String(percent));
+        document.querySelector('#threshold').textContent = `${Math.round(result.threshold * 100)}%`;
+        statusLine.textContent = `Prediction complete · ${modelNames[result.model] || result.model}`;
+      } catch (error) {
+        const box = document.querySelector('#error-message');
+        box.textContent = error.message || 'Request failed. Please try again.';
+        box.classList.add('show');
+        emptyState.style.display = 'none';
+        resultPanel.classList.add('show');
+        statusLine.textContent = '';
+      } finally {
+        button.disabled = false;
+        button.querySelector('span').textContent = 'Run prediction';
+      }
+    });
+  </script>
+</body>
+</html>

@@ -11,7 +11,7 @@ $env:API_KEY = "replace-with-a-long-random-secret"
 uvicorn src.api:app --host 127.0.0.1 --port 8000
 ```
 
-Browse to `http://localhost:8000/docs`. `GET /health` reports service status and the number of artifacts; `GET /models` lists model IDs. `POST /predict` uses the champion `lr_base`; `POST /predict/{model_id}` selects another artifact. Both prediction routes require `Authorization: Bearer <API_KEY>`.
+Browse to `http://localhost:8000/` for the prediction workspace or `http://localhost:8000/docs` for technical API documentation. The workspace lets you enter an employee profile, select a model, and view the estimated likelihood. It asks for the API key at request time and does not save it. `GET /health` reports service status and the number of artifacts; `GET /models` lists model IDs. `POST /predict` uses the champion `lr_base`; `POST /predict/{model_id}` selects another artifact. Both prediction routes require `Authorization: Bearer <API_KEY>`.
 
 Example model-specific call:
 
@@ -27,7 +27,7 @@ The included `render.yaml` defines a free Docker web service and `/health` healt
 1. Create a private GitHub repository with `Employee_Attrition_ML` as its root and push the project. The included `.gitignore` excludes the raw HR dataset and generated figures/tables while retaining all 17 model artifacts.
 2. In Render, create a Blueprint from that repository and select `render.yaml`.
 3. Set the `API_KEY` environment variable in Render to a long, random secret. Do not commit the key.
-4. Wait for the Docker build, then verify the service's `/health` and `/docs` URLs.
+4. Wait for the Docker build, then open the service root for the prediction workspace; `/docs` remains available for technical API documentation.
 
 The free instance may spin down while idle, so its first request after inactivity can be delayed. Keep the API key private and use HTTPS for hosted requests. Only send employee data that you are authorized to process.
 

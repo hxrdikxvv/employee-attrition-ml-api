@@ -13,6 +13,7 @@ COPY requirements-deploy.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY src/api.py ./src/api.py
+COPY src/dashboard.html ./src/dashboard.html
 COPY results/full_pipeline/models/ ./models/
 
 ENV MODEL_DIR=/app/models
