@@ -1,5 +1,6 @@
 __pycache__/
 *.py[cod]
+*.tsbuildinfo
 /data/
 /results/*
 !/results/full_pipeline/
@@ -7,3 +8,11 @@ __pycache__/
 !/results/full_pipeline/models/
 /results/full_pipeline/models/*
 !/results/full_pipeline/models/*.pkl
+!/results/full_pipeline/tables/
+/results/full_pipeline/tables/*
+!/results/full_pipeline/tables/*.csv
+!/results/full_pipeline/figures/
+/results/full_pipeline/figures/*
+!/results/full_pipeline/figures/*.png
+/frontend/node_modules/
+/frontend/dist/

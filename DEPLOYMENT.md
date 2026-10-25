@@ -11,7 +11,7 @@ $env:API_KEY = "replace-with-a-long-random-secret"
 uvicorn src.api:app --host 127.0.0.1 --port 8000
 ```
 
-Browse to `http://localhost:8000/` for the prediction workspace or `http://localhost:8000/docs` for technical API documentation. The workspace lets you enter an employee profile, select a model, and view the estimated likelihood. It asks for the API key at request time and does not save it. `GET /health` reports service status and the number of artifacts; `GET /models` lists model IDs. `POST /predict` uses the champion `lr_base`; `POST /predict/{model_id}` selects another artifact. Both prediction routes require `Authorization: Bearer <API_KEY>`.
+Browse to `http://localhost:8000/` for the AttritionIQ workspace or `http://localhost:8000/docs` for technical API documentation. The workspace lets you enter an employee profile, select a model, and view the estimated likelihood. It asks for the API key at request time and does not save it. `GET /health` reports service status; `GET /models` lists model IDs; `GET /api/performance` and `GET /api/insights` return saved evaluation results. `POST /predict` uses the champion `lr_base`; `POST /predict/{model_id}` selects another artifact. Both prediction routes require `Authorization: Bearer <API_KEY>`.
 
 Example model-specific call:
 
@@ -31,4 +31,4 @@ The included `render.yaml` defines a free Docker web service and `/health` healt
 
 The free instance may spin down while idle, so its first request after inactivity can be delayed. Keep the API key private and use HTTPS for hosted requests. Only send employee data that you are authorized to process.
 
-The Docker image includes the model files and their required inference libraries: scikit-learn, XGBoost, LightGBM, and CatBoost. `libgomp1` is installed for native booster runtimes. Set `MODEL_DIR` only if the artifacts are mounted at a non-default location.
+The Docker image builds the Vite frontend in a Node stage, then serves its compiled assets from FastAPI with the model API. It includes all 17 model artifacts, the evaluation tables, and the generated figures used by the performance and insights pages. Inference libraries include scikit-learn, XGBoost, LightGBM, and CatBoost. `libgomp1` is installed for native booster runtimes. Set `MODEL_DIR` only if the artifacts are mounted at a non-default location.

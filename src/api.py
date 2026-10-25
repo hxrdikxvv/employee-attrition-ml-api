@@ -1,4 +1,5 @@
 import os
+import json
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
@@ -7,11 +8,15 @@ import joblib
 import pandas as pd
 from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 
 ROOT = Path(__file__).resolve().parents[1]
 MODEL_DIR = Path(os.getenv("MODEL_DIR", str(ROOT / "results" / "full_pipeline" / "models")))
+TABLES_DIR = ROOT / "results" / "full_pipeline" / "tables"
+FIGURES_DIR = ROOT / "results" / "full_pipeline" / "figures"
+FRONTEND_DIST = ROOT / "frontend" / "dist"
 MODEL_FILES = {path.stem: path for path in sorted(MODEL_DIR.glob("*.pkl"))}
 DEFAULT_MODEL = "lr_base"
 FEATURES = [
@@ -134,10 +139,25 @@ def predict_with_model(model_name: str, employee: Employee) -> dict[str, str | f
 
 app = FastAPI(title="Employee Attrition Prediction API", version="1.2.0")
 
+if (FRONTEND_DIST / "assets").is_dir():
+    app.mount("/assets", StaticFiles(directory=FRONTEND_DIST / "assets"), name="frontend-assets")
+if FIGURES_DIR.is_dir():
+    app.mount("/result-figures", StaticFiles(directory=FIGURES_DIR), name="result-figures")
+
 
 @app.get("/", include_in_schema=False)
 def home() -> FileResponse:
+    index_file = FRONTEND_DIST / "index.html"
+    if index_file.is_file():
+        return FileResponse(index_file)
     return FileResponse(ROOT / "src" / "dashboard.html")
+
+
+def read_table(filename: str) -> list[dict[str, object]]:
+    table_path = TABLES_DIR / filename
+    if not table_path.is_file():
+        raise HTTPException(status_code=503, detail=f"Evaluation data is unavailable: {filename}")
+    return json.loads(pd.read_csv(table_path).to_json(orient="records"))
 
 
 @app.get("/health")
@@ -154,6 +174,37 @@ def list_models() -> dict[str, object]:
     }
 
 
+@app.get("/api/performance")
+def performance() -> dict[str, object]:
+    holdout = read_table("final_summary.csv")
+    return {
+        "criterion": "Highest F1-score on the held-out test set",
+        "champion": holdout[0] if holdout else None,
+        "holdout": holdout,
+        "all_models": read_table("holdout_all_models.csv"),
+        "cross_validation": read_table("cv_5x5_results.csv"),
+        "threshold_sweep": read_table("threshold_sweep.csv"),
+        "calibration": read_table("calibration.csv"),
+        "statistical_tests": read_table("statistical_tests.csv"),
+        "figures": {
+            "roc_pr": "/result-figures/roc_pr_all_models.png",
+            "confusion_matrices": "/result-figures/confusion_matrices_all.png",
+            "decision_curve": "/result-figures/decision_curve_analysis.png",
+        },
+    }
+
+
+@app.get("/api/insights")
+def insights() -> dict[str, object]:
+    return {
+        "feature_importance": read_table("feature_importance.csv"),
+        "shap_importance": read_table("shap_importance.csv"),
+        "subgroup_fairness": read_table("subgroup_fairness.csv"),
+        "error_analysis": read_table("error_analysis.csv"),
+        "selected_features": read_table("selected_features.csv"),
+    }
+
+
 @app.post("/predict", dependencies=[Depends(require_api_key)])
 def predict(employee: Employee) -> dict[str, str | float]:
     return predict_with_model(DEFAULT_MODEL, employee)
@@ -162,3 +213,11 @@ def predict(employee: Employee) -> dict[str, str | float]:
 @app.post("/predict/{model_name}", dependencies=[Depends(require_api_key)])
 def predict_selected(model_name: str, employee: Employee) -> dict[str, str | float]:
     return predict_with_model(model_name, employee)
+
+
+@app.get("/{frontend_path:path}", include_in_schema=False)
+def frontend_fallback(frontend_path: str) -> FileResponse:
+    index_file = FRONTEND_DIST / "index.html"
+    if not index_file.is_file():
+        raise HTTPException(status_code=404, detail="Not found")
+    return FileResponse(index_file)

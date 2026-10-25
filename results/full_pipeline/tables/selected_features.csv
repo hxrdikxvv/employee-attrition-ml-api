@@ -1,0 +1,17 @@
+Rank,Feature
+1,OverTime_Yes
+2,MaritalStatus_Single
+3,IsSingle
+4,OverTime_No
+5,StockOptionLevel
+6,MonthlyIncome
+7,SatisfactionScore
+8,YearsWithCurrManager
+9,JobRole_Laboratory Technician
+10,JobInvolvement
+11,HasOvertime
+12,Department_Sales
+13,WorkLifeBalance
+14,Age
+15,BusinessTravel_Travel_Frequently
+16,RiskScore
