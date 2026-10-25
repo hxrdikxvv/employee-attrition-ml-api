@@ -1,0 +1,162 @@
+{
+  "champion_model": "XGB",
+  "serving_threshold": 0.5,
+  "selection_basis": "highest mean repeated-stratified-CV F1 among the six base models",
+  "validation_scope": "single random holdout from the IBM HR Analytics dataset; external and temporal validation not performed",
+  "training_numeric_ranges": {
+    "Age": {
+      "min": 18.0,
+      "max": 60.0
+    },
+    "DailyRate": {
+      "min": 103.0,
+      "max": 1499.0
+    },
+    "DistanceFromHome": {
+      "min": 1.0,
+      "max": 29.0
+    },
+    "Education": {
+      "min": 1.0,
+      "max": 5.0
+    },
+    "EnvironmentSatisfaction": {
+      "min": 1.0,
+      "max": 4.0
+    },
+    "HourlyRate": {
+      "min": 30.0,
+      "max": 100.0
+    },
+    "JobInvolvement": {
+      "min": 1.0,
+      "max": 4.0
+    },
+    "JobLevel": {
+      "min": 1.0,
+      "max": 5.0
+    },
+    "JobSatisfaction": {
+      "min": 1.0,
+      "max": 4.0
+    },
+    "MonthlyIncome": {
+      "min": 1009.0,
+      "max": 19973.0
+    },
+    "MonthlyRate": {
+      "min": 2094.0,
+      "max": 26999.0
+    },
+    "NumCompaniesWorked": {
+      "min": 0.0,
+      "max": 9.0
+    },
+    "PercentSalaryHike": {
+      "min": 11.0,
+      "max": 25.0
+    },
+    "PerformanceRating": {
+      "min": 3.0,
+      "max": 4.0
+    },
+    "RelationshipSatisfaction": {
+      "min": 1.0,
+      "max": 4.0
+    },
+    "StockOptionLevel": {
+      "min": 0.0,
+      "max": 3.0
+    },
+    "TotalWorkingYears": {
+      "min": 0.0,
+      "max": 40.0
+    },
+    "TrainingTimesLastYear": {
+      "min": 0.0,
+      "max": 6.0
+    },
+    "WorkLifeBalance": {
+      "min": 1.0,
+      "max": 4.0
+    },
+    "YearsAtCompany": {
+      "min": 0.0,
+      "max": 37.0
+    },
+    "YearsInCurrentRole": {
+      "min": 0.0,
+      "max": 17.0
+    },
+    "YearsSinceLastPromotion": {
+      "min": 0.0,
+      "max": 15.0
+    },
+    "YearsWithCurrManager": {
+      "min": 0.0,
+      "max": 17.0
+    },
+    "HasOvertime": {
+      "min": 0.0,
+      "max": 1.0
+    },
+    "IsSingle": {
+      "min": 0.0,
+      "max": 1.0
+    },
+    "LowStock": {
+      "min": 0.0,
+      "max": 1.0
+    },
+    "IsJunior": {
+      "min": 0.0,
+      "max": 1.0
+    },
+    "IncomeToLevel": {
+      "min": 1009.0,
+      "max": 4990.5
+    },
+    "ExperienceGap": {
+      "min": 0.0,
+      "max": 31.0
+    },
+    "SatisfactionScore": {
+      "min": 5.0,
+      "max": 16.0
+    },
+    "RiskScore": {
+      "min": 0.0,
+      "max": 8.0
+    }
+  },
+  "brier_score": 0.1262,
+  "ece": 0.0862,
+  "mcnemar_p": 0.0008,
+  "bootstrap_delta_f1": [
+    0.0162,
+    0.1093
+  ],
+  "bootstrap_delta_roc_auc": [
+    -0.0084,
+    0.0498
+  ],
+  "comparison_model": "GB",
+  "selected_features": [
+    "StockOptionLevel",
+    "MonthlyIncome",
+    "JobSatisfaction",
+    "YearsWithCurrManager",
+    "WorkLifeBalance",
+    "EnvironmentSatisfaction",
+    "RelationshipSatisfaction",
+    "Department_Research & Development",
+    "JobRole_Research Scientist",
+    "JobInvolvement",
+    "JobLevel",
+    "Department_Sales",
+    "BusinessTravel_Non-Travel",
+    "BusinessTravel_Travel_Rarely",
+    "OverTime_Yes"
+  ],
+  "total_runtime_min": 8.96
+}

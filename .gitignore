@@ -11,6 +11,7 @@ __pycache__/
 !/results/full_pipeline/tables/
 /results/full_pipeline/tables/*
 !/results/full_pipeline/tables/*.csv
+!/results/full_pipeline/tables/pipeline_metadata.json
 !/results/full_pipeline/figures/
 /results/full_pipeline/figures/*
 !/results/full_pipeline/figures/*.png
