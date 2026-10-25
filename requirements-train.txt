@@ -1,0 +1,4 @@
+-r requirements-deploy.txt
+imbalanced-learn==0.14.1
+seaborn==0.13.2
+shap==0.50.0

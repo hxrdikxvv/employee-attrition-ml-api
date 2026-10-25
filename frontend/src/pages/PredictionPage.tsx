@@ -7,20 +7,18 @@ import { modelLabel, PageHeader, percent } from '../components/ui';
 type Draft = Record<keyof EmployeeInput, string>;
 
 const blankDraft: Draft = {
-  Age: '', BusinessTravel: '', Department: '', JobInvolvement: '', JobLevel: '', JobRole: '',
-  MaritalStatus: '', MonthlyIncome: '', OverTime: '', StockOptionLevel: '', WorkLifeBalance: '',
+  BusinessTravel: '', Department: '', JobInvolvement: '', JobLevel: '', JobRole: '',
+  MonthlyIncome: '', OverTime: '', StockOptionLevel: '', WorkLifeBalance: '',
   YearsWithCurrManager: '', JobSatisfaction: '', EnvironmentSatisfaction: '', RelationshipSatisfaction: '',
 };
 
 function toEmployee(draft: Draft): EmployeeInput {
   return {
-    Age: Number(draft.Age),
     BusinessTravel: draft.BusinessTravel as EmployeeInput['BusinessTravel'],
     Department: draft.Department as EmployeeInput['Department'],
     JobInvolvement: Number(draft.JobInvolvement),
     JobLevel: Number(draft.JobLevel),
     JobRole: draft.JobRole,
-    MaritalStatus: draft.MaritalStatus as EmployeeInput['MaritalStatus'],
     MonthlyIncome: Number(draft.MonthlyIncome),
     OverTime: draft.OverTime as EmployeeInput['OverTime'],
     StockOptionLevel: Number(draft.StockOptionLevel),
@@ -115,17 +113,15 @@ export function PredictionPage() {
 
   return (
     <div className="page-stack">
-      <PageHeader eyebrow="Prediction workspace" title="Predict attrition" description="Evaluate one employee profile with any trained model. Inputs are sent to the prediction service and are not saved in history." />
+      <PageHeader eyebrow="Prediction workspace" title="Predict attrition" description="Research/demo estimate from work-related inputs. Age, gender, and marital status are not requested or used. Inputs are sent to the service and are not saved in history." />
       <div className="prediction-layout">
         <form className="panel prediction-form" onSubmit={submit}>
           <div className="form-section">
-            <div className="form-section-title"><span className="step-index">01</span><div><h2>Employee information</h2><p>Demographic and role details accepted by the model.</p></div></div>
+            <div className="form-section-title"><span className="step-index">01</span><div><h2>Employee information</h2><p>Role and compensation details used by the research model.</p></div></div>
             <div className="form-grid">
-              <NumberField label="Age" name="Age" value={draft.Age} min={18} max={100} onChange={update} />
               <SelectField label="Department" name="Department" value={draft.Department} options={options(['Sales', 'Research & Development', 'Human Resources'])} onChange={update} />
               <SelectField label="Job role" name="JobRole" value={draft.JobRole} options={options(['Healthcare Representative', 'Human Resources', 'Laboratory Technician', 'Manager', 'Manufacturing Director', 'Research Director', 'Research Scientist', 'Sales Executive', 'Sales Representative'])} onChange={update} />
               <NumberField label="Monthly income" name="MonthlyIncome" value={draft.MonthlyIncome} min={0} max={500000} step={1} onChange={update} />
-              <SelectField label="Marital status" name="MaritalStatus" value={draft.MaritalStatus} options={options(['Single', 'Married', 'Divorced'])} onChange={update} />
               <NumberField label="Stock option level" name="StockOptionLevel" value={draft.StockOptionLevel} min={0} max={3} onChange={update} />
             </div>
           </div>
@@ -178,6 +174,7 @@ export function PredictionPage() {
             <div className="probability-track" role="meter" aria-label="Predicted attrition probability" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(result.attrition_probability * 100)}><span style={{ width: `${Math.round(result.attrition_probability * 100)}%` }} /></div>
             <div className="result-stat"><span>Classification threshold</span><strong>{percent(result.threshold, 0)}</strong></div>
             <p className="result-interpretation">{leaving ? 'This model estimate is at or above its classification threshold.' : 'This model estimate is below its classification threshold.'}</p>
+            {result.out_of_training_range_fields?.length > 0 && <p className="panel-footnote">Out of the source training range for: {result.out_of_training_range_fields.join(', ')}. Treat this estimate as especially uncertain.</p>}
             <button className="button button-secondary full-width" type="button" onClick={reset}><RotateCcw size={15} /> Make another prediction</button>
           </div> : <div className="result-empty"><Sparkles size={19} /><strong>No prediction yet</strong><p>Complete the employee profile to receive a model estimate.</p></div>}
           <div className="result-disclaimer">Estimates are decision support only. They must not be used as the sole basis for employment decisions.</div>

@@ -22,7 +22,7 @@ export function InsightsPage() {
     <div className="page-stack">
       <PageHeader eyebrow="Evaluation" title="Employee insights" description="Explore aggregate patterns captured by the feature selector and validation analyses." />
       <div className="grid-two">
-        <Panel title="Feature selection importance" description="Gradient-boosting selector importance across the training features.">
+        <Panel title="Feature selection importance" description="Training-set importance; duplicate engineered aliases and direct age, gender, and marital-status predictors are excluded.">
           <div className="chart-wrap insights-chart"><ResponsiveContainer width="100%" height="100%"><BarChart data={importance} layout="vertical" margin={{ top: 6, right: 18, bottom: 0, left: 5 }}>
             <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--chart-grid)" />
             <XAxis type="number" tickFormatter={(v: number) => `${(v * 100).toFixed(0)}%`} tick={{ fill: 'var(--text-subtle)', fontSize: 10 }} axisLine={false} tickLine={false} />
@@ -31,7 +31,7 @@ export function InsightsPage() {
             <Bar dataKey="value" fill="var(--accent)" radius={[0, 4, 4, 0]} barSize={11} />
           </BarChart></ResponsiveContainer></div>
         </Panel>
-        <Panel title="Global SHAP importance" description="Mean absolute SHAP value across the evaluated sample; global, not employee-specific explanations.">
+        <Panel title="Global SHAP importance" description="Gradient Boosting reference model; not the default Logistic Regression service model. Global, not employee-specific explanations.">
           <div className="chart-wrap insights-chart"><ResponsiveContainer width="100%" height="100%"><BarChart data={shap} layout="vertical" margin={{ top: 6, right: 18, bottom: 0, left: 5 }}>
             <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--chart-grid)" />
             <XAxis type="number" tick={{ fill: 'var(--text-subtle)', fontSize: 10 }} axisLine={false} tickLine={false} />
@@ -42,20 +42,20 @@ export function InsightsPage() {
         </Panel>
       </div>
 
-      <Panel title="Subgroup evaluation" description="Holdout recall, precision and false-positive rate by the pipeline's reported groups.">
+      <Panel title="Subgroup evaluation" description={`Holdout results for ${data.subgroup_fairness[0]?.Model ?? 'the recorded model'} at ${percent(data.subgroup_fairness[0]?.Threshold ?? 0.5, 0)} threshold; descriptive, not a complete fairness audit.`}>
         <div className="table-scroll"><table className="data-table"><thead><tr><th>Subgroup</th><th>Employees</th><th>Recall</th><th>Precision</th><th>F1</th><th>False-positive rate</th></tr></thead><tbody>
           {data.subgroup_fairness.map((group) => <tr key={group.Subgroup}><td className="model-cell">{group.Subgroup}</td><td>{group.n}</td><td>{percent(group.Recall, 1)}</td><td>{percent(group.Precision, 1)}</td><td>{percent(group.F1, 1)}</td><td>{percent(group.FPR, 1)}</td></tr>)}
         </tbody></table></div>
-        <p className="panel-footnote">These descriptive slices are not a complete fairness audit or evidence of causal relationships. Small subgroups may produce unstable estimates.</p>
+        <p className="panel-footnote">The model excludes age, gender, and marital-status predictors, but proxy effects can remain. These slices are not a complete fairness audit or evidence of causal relationships; small groups and few positive outcomes make estimates unstable.</p>
       </Panel>
 
-      <Panel title="Error profiles" description="Aggregate characteristics of false-negative and false-positive cases in the saved analysis.">
+      <Panel title="Error profiles" description={`Aggregate errors for ${data.error_analysis[0]?.Model ?? 'the recorded model'} at ${percent(data.error_analysis[0]?.Threshold ?? 0.5, 0)} threshold.`}>
         <div className="table-scroll"><table className="data-table"><thead><tr><th>Error type</th><th>High income</th><th>Senior job level</th><th>High satisfaction</th><th>Overtime</th><th>Low tenure</th></tr></thead><tbody>
           {data.error_analysis.map((item) => <tr key={item.Type}><td className="model-cell">{item.Type}</td><td>{percent(item['high_income_%'] / 100, 1)}</td><td>{percent(item['senior_joblevel_%'] / 100, 1)}</td><td>{percent(item['high_satisfaction_%'] / 100, 1)}</td><td>{percent(item['overtime_%'] / 100, 1)}</td><td>{percent(item['low_tenure_%'] / 100, 1)}</td></tr>)}
         </tbody></table></div>
       </Panel>
 
-      <Panel title="Selected model inputs" description="The 16 features selected for the final models by the pipeline.">
+      <Panel title="Selected model inputs" description={`${data.selected_features.length} inputs selected for the final models by the pipeline.`}>
         <div className="feature-chip-list">{data.selected_features.map((item) => <span className="feature-chip" key={item.Rank}><b>{String(item.Rank).padStart(2, '0')}</b>{item.Feature.replaceAll('_', ' ')}</span>)}</div>
       </Panel>
       <p className="source-note">Importance values describe model behavior in this dataset. They should not be interpreted as causal effects or reasons to make an employment decision.</p>

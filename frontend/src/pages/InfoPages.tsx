@@ -20,14 +20,14 @@ export function AboutPage() {
         <Panel title="Model and selection" description="The prediction service includes 17 saved model artifacts.">
           <div className="method-list">
             <div><span className="method-index">01</span><div><strong>Preprocessing</strong><p>Domain features, training-only encoding, and in-fold SMOTE.</p></div></div>
-            <div><span className="method-index">02</span><div><strong>Feature selection</strong><p>Gradient-boosting importance selects 16 final model inputs.</p></div></div>
+            <div><span className="method-index">02</span><div><strong>Feature selection</strong><p>Gradient-boosting importance selects from inputs the prediction form collects; age, gender, marital status, and redundant aliases are excluded as predictors.</p></div></div>
             <div><span className="method-index">03</span><div><strong>Evaluation</strong><p>Repeated stratified 5×5 cross-validation and one holdout evaluation.</p></div></div>
-            <div><span className="method-index">04</span><div><strong>Champion criterion</strong><p>Logistic Regression ranks first by holdout F1 in the saved scorecard.</p></div></div>
+            <div><span className="method-index">04</span><div><strong>Champion criterion</strong><p>The service model is selected by mean repeated cross-validation F1 among six base models; the holdout is reported separately.</p></div></div>
           </div>
         </Panel>
       </div>
       <Panel title="Responsible interpretation" description="Predictions are estimates based on historical data, not explanations or decisions.">
-        <div className="notice-box"><ShieldCheck size={18} /><div><strong>Use human review</strong><p>Do not use an individual probability as the sole basis for employment decisions. Model performance can vary across groups, and the subgroup metrics are descriptive rather than a complete fairness audit.</p></div></div>
+        <div className="notice-box"><ShieldCheck size={18} /><div><strong>Research/demo only</strong><p>Do not use these scores to rank, monitor, retain, promote, or otherwise make employment decisions. The public dataset is small and not representative evidence for another employer. No external validation or complete fairness audit has been performed; human review does not by itself make an unvalidated score safe to use.</p></div></div>
       </Panel>
       <a className="external-link" href="https://github.com/hxrdikxvv/employee-attrition-ml-api" target="_blank" rel="noreferrer">Project source repository <ExternalLink size={14} /></a>
     </div>

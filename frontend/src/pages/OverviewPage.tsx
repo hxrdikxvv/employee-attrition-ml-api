@@ -111,10 +111,10 @@ export function OverviewPage() {
             </ResponsiveContainer>
           </div>
         </Panel>
-        <Panel title="Model selection" description="The project selects its champion using held-out F1, not accuracy alone.">
+        <Panel title="Model selection" description="The serving model is selected using repeated cross-validation; holdout scores are reported separately.">
           <div className="champion-card">
             <div className="champion-mark"><Target size={18} /></div>
-            <div><span className="data-tag">F1 rank #1</span><h3>{performance.champion ? modelLabel(performance.champion.Model) : 'Unavailable'}</h3><p>Best F1 score on the held-out evaluation set.</p></div>
+            <div><span className="data-tag">Selected by CV F1</span><h3>{performance.champion ? modelLabel(performance.champion.Model) : 'Unavailable'}</h3><p>Holdout score shown for this cross-validation-selected model.</p></div>
             {performance.champion && <strong className="champion-score tabular">{percent(performance.champion.F1, 2)}<small>F1</small></strong>}
           </div>
           <div className="notice-line"><CircleHelp size={15} /><span>The dataset is imbalanced. Compare precision and recall alongside accuracy when reviewing results.</span></div>

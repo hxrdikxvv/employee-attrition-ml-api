@@ -19,25 +19,26 @@ FIGURES_DIR = ROOT / "results" / "full_pipeline" / "figures"
 FRONTEND_DIST = ROOT / "frontend" / "dist"
 MODEL_FILES = {path.stem: path for path in sorted(MODEL_DIR.glob("*.pkl"))}
 DEFAULT_MODEL = "lr_base"
-FEATURES = [
-    "OverTime_Yes",
-    "MaritalStatus_Single",
-    "IsSingle",
-    "OverTime_No",
-    "StockOptionLevel",
-    "MonthlyIncome",
-    "SatisfactionScore",
-    "YearsWithCurrManager",
-    "JobRole_Laboratory Technician",
-    "JobInvolvement",
-    "HasOvertime",
-    "Department_Sales",
-    "WorkLifeBalance",
-    "Age",
-    "BusinessTravel_Travel_Frequently",
-    "RiskScore",
+METADATA_PATH = TABLES_DIR / "pipeline_metadata.json"
+PIPELINE_METADATA = json.loads(METADATA_PATH.read_text()) if METADATA_PATH.is_file() else {}
+CHAMPION = str(PIPELINE_METADATA.get("champion_model", "LR"))
+DEFAULT_MODEL = f"{CHAMPION.lower()}_base"
+FEATURES = list(PIPELINE_METADATA.get("selected_features", []))
+THRESHOLD = float(PIPELINE_METADATA.get("serving_threshold", 0.50))
+TRAINING_NUMERIC_RANGES = PIPELINE_METADATA.get("training_numeric_ranges", {})
+if not FEATURES:
+    raise FileNotFoundError(f"Selected model features are missing from {METADATA_PATH}")
+NUMERIC_INPUTS = {
+    "JobInvolvement", "JobLevel", "MonthlyIncome", "StockOptionLevel", "WorkLifeBalance",
+    "YearsWithCurrManager", "JobSatisfaction", "EnvironmentSatisfaction", "RelationshipSatisfaction",
+}
+CATEGORICAL_INPUTS = {"BusinessTravel", "Department", "JobRole", "OverTime"}
+unsupported_features = [
+    name for name in FEATURES
+    if name not in NUMERIC_INPUTS and not any(name.startswith(f"{category}_") for category in CATEGORICAL_INPUTS)
 ]
-THRESHOLD = 0.50
+if unsupported_features:
+    raise ValueError(f"Model expects inputs not collected by the prediction form: {unsupported_features}")
 
 if DEFAULT_MODEL not in MODEL_FILES:
     raise FileNotFoundError(f"Default model not found in {MODEL_DIR}: {DEFAULT_MODEL}.pkl")
@@ -45,7 +46,6 @@ if not MODEL_FILES:
     raise FileNotFoundError(f"No model files found in {MODEL_DIR}")
 
 class Employee(BaseModel):
-    Age: int = Field(ge=18, le=100)
     BusinessTravel: Literal["Non-Travel", "Travel_Frequently", "Travel_Rarely"]
     Department: Literal["Human Resources", "Research & Development", "Sales"]
     JobInvolvement: int = Field(ge=1, le=4)
@@ -61,7 +61,6 @@ class Employee(BaseModel):
         "Sales Executive",
         "Sales Representative",
     ]
-    MaritalStatus: Literal["Divorced", "Married", "Single"]
     MonthlyIncome: float = Field(ge=0)
     OverTime: Literal["Yes", "No"]
     StockOptionLevel: int = Field(ge=0, le=3)
@@ -90,47 +89,27 @@ def load_model(model_name: str):
 
 def build_feature_row(employee: Employee) -> pd.DataFrame:
     values = employee.model_dump()
-    overtime = int(values["OverTime"] == "Yes")
-    single = int(values["MaritalStatus"] == "Single")
-    low_stock = int(values["StockOptionLevel"] == 0)
-    junior = int(values["JobLevel"] <= 1)
-    features = {
-        "OverTime_Yes": overtime,
-        "MaritalStatus_Single": single,
-        "IsSingle": single,
-        "OverTime_No": 1 - overtime,
-        "StockOptionLevel": values["StockOptionLevel"],
-        "MonthlyIncome": values["MonthlyIncome"],
-        "SatisfactionScore": (
-            values["JobSatisfaction"]
-            + values["EnvironmentSatisfaction"]
-            + values["RelationshipSatisfaction"]
-            + values["WorkLifeBalance"]
-        ),
-        "YearsWithCurrManager": values["YearsWithCurrManager"],
-        "JobRole_Laboratory Technician": int(values["JobRole"] == "Laboratory Technician"),
-        "JobInvolvement": values["JobInvolvement"],
-        "HasOvertime": overtime,
-        "Department_Sales": int(values["Department"] == "Sales"),
-        "WorkLifeBalance": values["WorkLifeBalance"],
-        "Age": values["Age"],
-        "BusinessTravel_Travel_Frequently": int(
-            values["BusinessTravel"] == "Travel_Frequently"
-        ),
-        "RiskScore": 3 * overtime + 2 * single + 2 * low_stock + junior,
-    }
-    return pd.DataFrame([[features[name] for name in FEATURES]], columns=FEATURES)
+    row = pd.DataFrame([values])
+    categorical = row.select_dtypes(include=["object"]).columns.tolist()
+    encoded = pd.get_dummies(row, columns=categorical, drop_first=False)
+    return encoded.reindex(columns=FEATURES, fill_value=0)
 
 
-def predict_with_model(model_name: str, employee: Employee) -> dict[str, str | float]:
+def predict_with_model(model_name: str, employee: Employee) -> dict[str, object]:
     model = load_model(model_name)
     row = build_feature_row(employee)
     probability = float(model.predict_proba(row)[0, 1])
+    values = employee.model_dump()
+    out_of_range_fields = [
+        field for field, bounds in TRAINING_NUMERIC_RANGES.items()
+        if field in values and (values[field] < bounds["min"] or values[field] > bounds["max"])
+    ]
     return {
         "model": model_name,
         "prediction": "Yes" if probability >= THRESHOLD else "No",
         "attrition_probability": round(probability, 6),
         "threshold": THRESHOLD,
+        "out_of_training_range_fields": out_of_range_fields,
     }
 
 
@@ -180,9 +159,11 @@ def list_models() -> dict[str, object]:
 @app.get("/api/performance")
 def performance() -> dict[str, object]:
     holdout = read_table("final_summary.csv")
+    champion_name = str(PIPELINE_METADATA.get("champion_model", CHAMPION))
+    champion = next((row for row in holdout if row.get("Model") == champion_name), None)
     return {
-        "criterion": "Highest F1-score on the held-out test set",
-        "champion": holdout[0] if holdout else None,
+        "criterion": f"{PIPELINE_METADATA.get('selection_basis', 'cross-validation selection')}; holdout shown separately",
+        "champion": champion,
         "holdout": holdout,
         "all_models": read_table("holdout_all_models.csv"),
         "cross_validation": read_table("cv_5x5_results.csv"),
