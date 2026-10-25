@@ -54,7 +54,7 @@ export function SettingsPage({ theme, setTheme, service }: {
           <div><dt>Available model artifacts</dt><dd>{service?.available_models ?? '—'}</dd></div>
           <div><dt>API origin</dt><dd><code>{API_ORIGIN}</code></dd></div>
           <div><dt>Documentation</dt><dd><a href={`${API_ORIGIN}/docs`} target="_blank" rel="noreferrer">Open API docs <ExternalLink size={13} /></a></dd></div>
-          <div><dt>API key</dt><dd>Managed in Render; entered only when requesting a prediction.</dd></div>
+          <div><dt>API key</dt><dd>Provided by the service administrator and entered only when requesting a prediction.</dd></div>
         </dl>
       </Panel>
       <div className="settings-security"><ShieldCheck size={16} /><span>The frontend does not persist API keys or employee input. Session history contains only prediction metadata.</span></div>

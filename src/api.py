@@ -44,9 +44,6 @@ if DEFAULT_MODEL not in MODEL_FILES:
 if not MODEL_FILES:
     raise FileNotFoundError(f"No model files found in {MODEL_DIR}")
 
-app = FastAPI(title="Employee Attrition Prediction API", version="1.0.0")
-
-
 class Employee(BaseModel):
     Age: int = Field(ge=18, le=100)
     BusinessTravel: Literal["Non-Travel", "Travel_Frequently", "Travel_Rarely"]
@@ -162,6 +159,12 @@ def read_table(filename: str) -> list[dict[str, object]]:
 
 @app.get("/health")
 def health() -> dict[str, str | int]:
+    if not os.getenv("API_KEY"):
+        raise HTTPException(status_code=503, detail="API_KEY is not configured")
+    try:
+        load_model(DEFAULT_MODEL)
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="Default model failed to load") from exc
     return {"status": "ok", "default_model": DEFAULT_MODEL, "available_models": len(MODEL_FILES)}
 
 

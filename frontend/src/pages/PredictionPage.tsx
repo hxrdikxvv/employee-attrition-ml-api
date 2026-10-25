@@ -79,7 +79,7 @@ export function PredictionPage() {
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!apiKey.trim()) { setError('Enter your Render API key to run a prediction.'); return; }
+    if (!apiKey.trim()) { setError('Enter your service API key to run a prediction.'); return; }
     setError('');
     setResult(null);
     setIsSubmitting(true);
@@ -151,13 +151,13 @@ export function PredictionPage() {
               <label className="form-field"><span>Model</span><select value={selectedModel} onChange={(event) => setSelectedModel(event.target.value)} disabled={!models.length}>
                 {models.map((model) => <option key={model.id} value={model.id}>{modelLabel(model.id)}</option>)}
               </select></label>
-              <label className="form-field"><span>Render API key <b className="required-mark" aria-hidden="true">*</b></span>
-                <div className="secret-input"><input type={showKey ? 'text' : 'password'} value={apiKey} onChange={(event) => setApiKey(event.target.value)} autoComplete="off" required aria-label="Render API key" />
+              <label className="form-field"><span>Service API key <b className="required-mark" aria-hidden="true">*</b></span>
+                <div className="secret-input"><input type={showKey ? 'text' : 'password'} value={apiKey} onChange={(event) => setApiKey(event.target.value)} autoComplete="off" required aria-label="Service API key" />
                   <button className="secret-toggle" type="button" onClick={() => setShowKey(!showKey)} aria-label={showKey ? 'Hide API key' : 'Show API key'}>{showKey ? <EyeOff size={16} /> : <Eye size={16} />}</button>
                 </div>
               </label>
             </div>
-            <a className="settings-link" href="https://dashboard.render.com/web/srv-dbcnbe4s728c73fkab3g/env" target="_blank" rel="noreferrer"><ShieldCheck size={14} /> Manage API key in Render <ArrowRight size={13} /></a>
+            <p className="settings-link"><ShieldCheck size={14} /> Ask the service administrator for an authorized API key.</p>
           </div>
 
           {error && <div className="form-error" role="alert"><span className="error-indicator">!</span><span>{error}</span></div>}

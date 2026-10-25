@@ -16,3 +16,4 @@ __pycache__/
 !/results/full_pipeline/figures/*.png
 /frontend/node_modules/
 /frontend/dist/
+/.venv/

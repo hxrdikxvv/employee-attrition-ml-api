@@ -227,7 +227,7 @@
 
         <div class="api-row">
           <div class="field api-field">
-            <div class="api-label"><label for="api-key">Render API key</label><a class="api-help" href="https://dashboard.render.com/web/srv-dbcnbe4s728c73fkab3g/env" target="_blank" rel="noreferrer">Open settings ↗</a></div>
+            <div class="api-label"><label for="api-key">Service API key</label></div>
             <div class="key-input"><input id="api-key" type="password" autocomplete="off" placeholder="Paste API key" required><button id="key-toggle" class="key-toggle" type="button" aria-label="Show API key" aria-controls="api-key" aria-pressed="false">Show</button></div>
             <span class="field-note">Used for this request only; it is not saved.</span>
           </div>
@@ -322,7 +322,7 @@
           body: JSON.stringify(payload)
         });
         const result = await response.json();
-        if (!response.ok) throw new Error(response.status === 401 ? 'That access key was not accepted. Check the API_KEY in Render settings.' : result.detail || 'Prediction could not be completed.');
+        if (!response.ok) throw new Error(response.status === 401 ? 'That access key was not accepted. Check with the service administrator.' : result.detail || 'Prediction could not be completed.');
         const percent = Math.round(result.attrition_probability * 100);
         const leaving = result.prediction === 'Yes';
         emptyState.style.display = 'none';

@@ -1,0 +1,15 @@
+.git
+.gitignore
+.dockerignore
+data/
+catboost_info/
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*.ipynb
+notebooks/
+scratch/
+frontend/node_modules/
+frontend/dist/
+results/**/cache/
+*.log
