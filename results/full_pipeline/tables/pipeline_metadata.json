@@ -1,7 +1,17 @@
 {
-  "champion_model": "XGB",
+  "champion_model": "LR",
   "serving_threshold": 0.5,
-  "selection_basis": "highest mean repeated-stratified-CV F1 among the six base models",
+  "selection_basis": "Logistic Regression selected to match RESEARCH_PAPER_FINAL; paper reports LR as champion based on its repeated-CV, holdout, and cost-sensitive analyses",
+  "deployment_model_artifact": "lr_base.pkl",
+  "evaluation_artifact_model": "XGB",
+  "evaluation_artifact_note": "Existing generated calibration, subgroup, error, threshold-sweep, and statistical-test artifacts were produced for XGB. They are not LR evaluation results. Re-run the pipeline against the paper's exact data/split before using these analyses to characterize LR.",
+  "paper_reported_lr_holdout": {
+    "accuracy": 0.8435,
+    "recall": 0.5352,
+    "precision": 0.5241,
+    "f1": 0.5241,
+    "mcc": 0.4307
+  },
   "validation_scope": "single random holdout from the IBM HR Analytics dataset; external and temporal validation not performed",
   "training_numeric_ranges": {
     "Age": {

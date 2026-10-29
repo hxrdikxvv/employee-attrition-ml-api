@@ -1,0 +1,1095 @@
+### Employee Attrition Prediction Using Machine Learning:
+A Comparative Analysis with Ensemble Methods
+and Threshold Optimization
+Dr. Rahul Gupta, Hardik Kumar, Saurish Dobhal, Shubham Agarwal
+```
+Email: rahulg1@srmist.edu.in
+```
+SRM Institute of Science and Technology, Delhi-NCR Campus
+ABSTRACT
+Employee attrition prediction is fundamentally a class-imbalanced classification problem in which minority-class
+performance governs operational value, rather than overall accuracy. This research presents a rigorous machine
+```
+learning pipeline for predicting employee attrition on the IBM HR Analytics dataset (1,470 employees, 16.12%
+```
+```
+attrition). Six base classifiers, two ensemble strategies, and four boosted ensemble combinations are evaluated
+```
+under a strictly leakage-free protocol in which all preprocessing, SMOTE, and feature selection are embedded
+inside the cross-validation loop, and an untouched 30% holdout is reserved for final evaluation. Using repeated
+```
+stratified 5-fold cross-validation (5×5), mean±SD is reported for ROC-AUC, PR-AUC, F1, recall, precision,
+```
+```
+balanced accuracy, and MCC. Surprisingly, Logistic Regression emerged as the champion model (F1 = 52.41%,
+```
+```
+Recall = 53.52%), outperforming complex ensembles such as Stacking (F1 = 45.31%). Statistical testing revealed
+```
+```
+no significant difference between the Stacking Ensemble and the strongest baseline (DeLong p = 0.786, McNe-
+```
+```
+mar p = 0.238). Tuning-objective sensitivity is examined across five scoring objectives, and validation-based
+```
+threshold selection is analyzed. Cost-sensitive decision-curve analysis across FN:FP ratios of 1:1 to 10:1 confirms
+Logistic Regression as the optimal choice across all cost assumptions. Crucially, subgroup fairness analysis re-
+```
+veals a severe disparity: the model achieves a 0.00 recall for senior employees (Job Level 3+). The study provides
+```
+a reproducible, statistically defensible benchmark for imbalanced HR classification and highlights the critical need
+for fairness auditing in automated retention systems.
+```
+Keywords: Employee Attrition; Machine Learning; Class Imbalance; Ensemble Learning; PR-AUC; HR Analyt-
+```
+ics
+1. Introduction
+Employee attrition represents one of the most consequential workforce challenges facing modern organizations.
+The financial implications are substantial: replacing an employee can cost between 50 and 200% of annual salary
+when accounting for recruitment, onboarding, training, and lost productivity [1]. High attrition rates also dis-
+rupt team dynamics, deplete institutional knowledge, and place additional strain on remaining employees [2].
+These effects are especially pronounced in knowledge-intensive industries where specialized skills take months to
+replace.
+Traditional HR approaches to attrition have been largely reactive, focusing on exit interviews and post-departure
+analysis [3]. Advances in human resource information systems and machine learning now enable a shift toward
+predictive analytics, identifying at-risk employees before they resign and enabling proactive retention interven-
+tions [4]. This transition from descriptive to predictive HR analytics represents a paradigm shift in workforce
+management [5].
+This research addresses employee attrition prediction as a binary classification problem using the IBM HR Ana-
+lytics Employee Attrition dataset. Only 16.12% of employees in the sample left the organization, creating a severe
+class imbalance that renders traditional accuracy-based evaluation misleading [6]. A naive classifier predicting
+that everyone stays achieves 83.88% accuracy while identifying zero at-risk employees, producing a statistically
+impressive but operationally useless result.
+Recent literature has explored various machine learning approaches for attrition prediction, yet several unresolved
+challenges persist [7]. Many studies prioritize accuracy over recall despite asymmetric error costs, default to the
+0.50 threshold without justification [8], use single train/test splits that provide weak evidence for model superiority,
+1
+and report ROC-AUC as their primary metric even though ROC-AUC can remain high under severe class imbal-
+ance while minority-class performance is weak [26]. Feature engineering grounded in HR domain knowledge is
+often asserted rather than ablated [11]. Comparative studies that include modern gradient boosting implementa-
+tions alongside traditional models remain limited [10], and statistically rigorous model comparison with paired
+bootstrap or DeLong tests is rare. Furthermore, fairness auditing across demographic and occupational subgroups
+is frequently omitted.
+This paper addresses these gaps through a comprehensive, methodologically rigorous pipeline. The main contri-
+butions are:
+1. A leakage-free, cross-validation-based pipeline is designed, in which SMOTE, feature selection, and hyperpa-
+rameter tuning are embedded inside every training fold.
+2. A repeated stratified 5×5 cross-validation protocol is employed, reporting mean±SD for ROC-AUC, PR-AUC,
+F1, recall, precision, balanced accuracy, and MCC, with an untouched holdout for final confirmation.
+3. PR-AUC is adopted as a primary ranking metric alongside ROC-AUC, with classification and decision metrics
+reported separately.
+4. An objective-function sensitivity study is conducted, demonstrating that the choice of tuning objective (ROC-
+```
+AUC, PR-AUC, F1, recall, or balanced accuracy) materially changes minority-class performance.
+```
+5. Statistical model comparison is performed using DeLong tests, paired bootstrap confidence intervals, and Mc-
+Nemar tests, distinguishing the best pipeline model from the best extended model.
+6. A cost-sensitive decision framework and decision-curve analysis are developed across FN:FP ratios from 1:1
+to 10:1, replacing the arbitrary composite scorecard of earlier drafts.
+7. Validation-based threshold selection and calibration analysis are performed, together with a subgroup fairness
+evaluation revealing severe disparities across job levels and age groups.
+The organization of this paper is as follows. Section 2 provides a systematic review of the related literature. Section
+3 describes the dataset, the leakage-free pipeline architecture, the preprocessing and feature-engineering steps, the
+six base classifiers, the hyperparameter tuning procedure, the ensemble strategies, and the evaluation metrics. Sec-
+tion 4 presents the experimental results, beginning with descriptive statistics and attrition distribution, followed
+by ablation studies, baseline model performance under repeated cross-validation, objective-function sensitivity,
+ensemble performance with statistical significance testing, cost-sensitive model evaluation, threshold optimiza-
+tion with calibration and decision-curve analysis, empirical performance boundary analysis, error analysis, and
+subgroup fairness analysis. Section 5 discusses the principal findings and their implications, compares the results
+with prior work, and outlines limitations and generalizability considerations. Section 6 concludes the paper and
+identifies directions for future research.
+2. Related Work
+The application of machine learning to employee attrition prediction has received significant attention. This
+section reviews key developments and identifies the research gap.
+2.1. Traditional Machine Learning Approaches
+Fallucchi et al. [3] applied multiple machine learning techniques to forecast employee attrition, demonstrating
+the viability of predictive analytics in HR contexts. Alghamdi et al. [4] found that ensemble methods generally
+outperformed single classifiers. Jain et al. [6] compared logistic regression, decision trees, and random forests on
+the IBM HR dataset, showing that tree-based methods capture nonlinear feature interactions but often at the cost
+of interpretability.
+2.2. Class Imbalance Handling
+Jadhav et al. [12] demonstrated the efficacy of SMOTE on imbalanced classification. Chawla et al. [13] originally
+```
+introduced SMOTE; subsequent work by He and Garcia [14] and Fern´andez et al. [15] extended it with ADASYN,
+```
+2
+Borderline-SMOTE, and SMOTE-Tomek. Critically, SMOTE must be applied inside the cross-validation loop to
+prevent synthetic-sample leakage into validation folds [16].
+2.3. Neural Network and Deep Learning Approaches
+Krishna and Sidharth [7] investigated neural network-based classification, achieving 88% accuracy. Yahia et al.
+[10] explored big-data and deep-learning approaches, highlighting scalability advantages. However, deep-learning
+approaches typically require substantially larger datasets than the IBM HR dataset provides [17].
+2.4. Feature Engineering and Domain Knowledge
+Sharma et al. [11] proposed combining fuzzy inference with ensemble machine learning. Fareed et al. [9]
+identified overtime, income, and job satisfaction as significant predictors. Marler and Boudreau [18] argue that
+HR-specific domain features outperform purely statistical ones, a claim directly tested by the ablation study in
+Section 4.2.
+2.5. Ensemble Methods
+Govindarajan et al. [1] compared Random Forest, SVM, Decision Tree, Gradient Boosting, and a Hybrid Model,
+```
+achieving 95.0% accuracy. Breiman [19] introduced Random Forests; Friedman [20] developed Gradient Boost-
+```
+```
+ing. Chen and Guestrin [21] introduced XGBoost; Ke et al. [22] introduced LightGBM; Wolpert [23] introduced
+```
+Stacked Generalization.
+2.6. Explainability and Threshold Optimization
+Lundberg and Lee [24] introduced SHAP values. Provost [8] and Sheng and Ling [25] established the foundations
+for threshold optimization in imbalanced classification. Saito and Rehmsmeier [26] demonstrated that PR-AUC is
+more informative than ROC-AUC under severe imbalance.
+2.7. Systematic Comparison with Prior Work
+Table 1 compares the present study against the most closely related work. The table highlights that prior studies
+primarily relied on accuracy or F1 without statistical validation or threshold optimization. In contrast, this study
+employs PR-AUC as a primary metric, utilizes in-fold SMOTE to prevent leakage, applies rigorous statistical tests
+```
+(DeLong, Bootstrap, McNemar), and incorporates validation-based threshold optimization.
+```
+Table 1: Systematic comparison with related studies.
+Study Dataset Imbalance
+Handling
+Best
+Metric
+Stat.
+Test
+Threshold
+Optim.
+Govindarajan
+[1]
+IBM HR None re-
+ported
+Accuracy No No
+Fallucchi [3] HR None Accuracy No No
+Jain [6] IBM HR None F1 No No
+Jadhav [12] Various SMOTE F1 No No
+```
+This study IBM HR SMOTE (in-
+```
+```
+fold)
+```
+PR-AUC
+- F1
+DeLong,
+Boot-
+strap,
+McNe-
+mar
+Validation-
+based
+3
+2.8. Research Gap
+```
+Prior work exhibits four common shortcomings: reliance on accuracy or ROC-AUC despite severe imbalance;
+```
+```
+SMOTE applied outside CV folds; single train/test splits without statistical validation; and arbitrary business-
+```
+aligned scoring without cost sensitivity. The present study addresses all four.
+3. Methodology
+3.1. Dataset Description
+3.1.1. Data Source
+The IBM HR Analytics Employee Attrition & Performance dataset is used, publicly available on Kaggle [27] and
+employed in multiple prior studies [3, 1, 6].
+3.1.2. Dataset Characteristics
+Table 2 summarizes the key characteristics of the dataset, which contains 1,470 employee records and 35 features.
+Table 2: Dataset characteristics.
+Property Value
+Total records 1,470
+Original features 35
+```
+Target variable Attrition (Yes/No)
+```
+Class distribution 16.12% Left, 83.88% Stayed
+Problem type Binary classification
+Missing values None
+```
+Source IBM HR Analytics (Kaggle)
+```
+3.1.3. Descriptive Statistics by Attrition Status
+Demographic and occupational characteristics stratified by attrition status are reported in Table 3. Continuous
+variables are summarized as mean±SD and compared using Welch’s t-test, with Mann–Whitney U applied where
+```
+normality is violated. Categorical variables are summarized as n (%) and compared using the χ2 test. Stan-
+```
+```
+dardized mean differences (SMD) and unadjusted odds ratios (OR) with 95% confidence intervals are reported to
+```
+characterize effect sizes independently of p-values.
+```
+It is evident from Table 3 that the strongest associations with attrition are overtime (OR = 11.1), job level 1
+```
+```
+(OR = 3.57), and single marital status (OR = 2.58). Among continuous features, age, monthly income, and job
+```
+```
+satisfaction show the largest standardized differences (SMD ≥ 0.42).
+```
+4
+Table 3: Demographic and occupational characteristics by attrition status. Continuous: mean ± SD.
+```
+Categorical: n (%). SMD = standardized mean difference; OR = unadjusted odds ratio.
+```
+Characteristic Stayed Left SMD p-value / OR [95% CI]
+```
+Age (years) 37.6 ± 9.1 33.6 ± 9.9 0.42 p < 0.001
+```
+Monthly income 6,833 ± 4,707 4,787 ± 3,621 0.46 p < 0.001
+Years at company 7.4 ± 6.1 5.1 ± 5.0 0.40 p < 0.001
+Years with curr. mgr 4.2 ± 3.6 2.9 ± 3.2 0.38 p < 0.001
+Distance from home
+```
+(km)
+```
+8.9 ± 8.0 10.6 ± 8.5 0.20 p = 0.001
+```
+Job satisfaction (1–4) 2.78 ± 0.70 2.47 ± 0.78 0.42 p < 0.001
+```
+```
+Work-life balance (1–
+```
+```
+4)
+```
+2.78 ± 0.71 2.66 ± 0.77 0.17 p = 0.009
+```
+Job involvement (1–4) 2.73 ± 0.70 2.55 ± 0.77 0.24 p = 0.001
+```
+```
+Stock option level (0–
+```
+```
+3)
+```
+0.79 ± 0.85 0.53 ± 0.76 0.31 p < 0.001
+```
+Overtime = Yes 115 (9.3%) 127 (53.6%) — OR = 11.1 [7.9–15.7]
+```
+```
+Single (marital) 350 (28.4%) 120 (50.6%) — OR = 2.58 [1.93–3.44]
+```
+```
+Job level = 1 369 (29.9%) 143 (60.3%) — OR = 3.57 [2.66–4.80]
+```
+3.1.4. Class Imbalance Analysis
+```
+The dataset exhibits severe class imbalance: 237 employees (16.12%) left versus 1,233 (83.88%) who stayed, as
+```
+shown in Figure 1.
+Stayed Left
+0
+200
+400
+600
+800
+1,000
+1,200
+1,400 1,233
+237
+Number of Employees
+Figure 1: Class distribution in the IBM HR Analytics dataset showing severe imbalance.
+3.1.5. Empirical Performance Boundary
+Three dataset properties limit attainable performance: feature incompleteness, temporal aggregation, and non-
+deterministic outcomes. Feature incompleteness occurs because external market conditions, personal circum-
+stances, and compensation relative to market rates are not captured in the HR database. Temporal aggregation
+arises because the dataset represents a static snapshot, missing dynamic factors such as recent team dynamics,
+managerial conflict, or changing personal obligations. Non-deterministic outcomes occur because employees with
+identical recorded feature profiles sometimes exhibit opposite attrition decisions, suggesting that unmeasured vari-
+```
+ables (e.g., a sudden external job offer) influence the decision. These sources of predictive uncertainty impose an
+```
+```
+empirical performance boundary (estimated at approximately 89.34% accuracy for this dataset), meaning that no
+```
+model can achieve perfect prediction using the current feature set. Throughout this paper, the observed upper
+performance bound is referred to as an empirical performance boundary, rather than as a theoretical ceiling.
+5
+3.2. Leakage-Free Pipeline Architecture
+A strict train/validation/test separation is enforced. SMOTE, feature selection, and hyperparameter tuning are all
+performed inside the training folds of the cross-validation loop, as illustrated in Figure 2. The 30% holdout is used
+only once for final confirmation.
+Figure 2: Leakage-free machine learning pipeline. Stage 1 covers data acquisition and preprocessing.
+Within each cross-validation fold, SMOTE oversampling and Gradient Boosting feature selection are ap-
+plied strictly inside the training partition. Model building uses repeated stratified 5×5 cross-validation,
+followed by hyperparameter tuning, ensemble construction, and validation-based threshold selection.
+Stage 2 reports final evaluation on the completely unseen holdout set.
+3.3. Data Cleaning and Preprocessing
+3.3.1. Target Variable Encoding
+```
+The target variable “Attrition” is converted from text values to binary values (1 for left, 0 for stayed).
+```
+3.3.2. Removal of Non-Informative Columns
+Table 4 outlines the four columns removed due to their lack of predictive value.
+6
+Table 4: Removed columns and justification.
+Column Reason for Removal
+```
+EmployeeCount Constant value (1 for all records)
+```
+EmployeeNumber Unique identifier, no predictive power
+```
+Over18 Constant value (for all records)
+```
+```
+StandardHours Constant value (80 for all records)
+```
+3.3.3. Domain-Driven Feature Engineering
+Eight features are engineered from HR domain reasoning, as detailed in Table 5. Each is designed to capture a
+```
+specific attrition mechanism; their marginal utility is tested empirically in Section 4.2.
+```
+Table 5: Engineered features with HR rationale.
+Feature Formula HR Rationale
+HasOvertime OverTime = Yes Overtime is a documented burnout factor
+IsSingle MaritalStatus = Single Single employees have fewer relocation
+constraints
+LowStock StockOptionLevel = 0 No equity implies lower switching cost
+IsJunior JobLevel ≤ 1 Junior employees have more mobility
+IncomeToLevel MonthlyIncome / JobLevel Detects underpayment relative to level
+ExperienceGap TotalWorkingYears minus
+YearsAtCompany
+Captures career-tenure mismatch
+SatisfactionScore Sum of 4 satisfaction met-
+rics
+Composite satisfaction measure
+RiskScore Weighted composite
+```
+(Eq. 1)
+```
+Aggregates four risk indicators
+```
+RiskScore = 3 · OverTime + 2 · IsSingle + 2 · LowStock + 1 · IsJunior (1)
+```
+3.4. Train/Test Split
+The dataset is split 70/30 with stratification and random state 42, yielding 1,029 training and 441 test records.
+The split occurs before encoding and SMOTE to prevent leakage. All model development, including SMOTE,
+```
+feature selection, and tuning, uses only the training folds of cross-validation; the holdout is reserved for one final
+```
+evaluation.
+3.5. Categorical Variable Encoding
+One-hot encoding is applied inside the pipeline, and the test set is reindexed against training columns for align-
+ment.
+```
+3.6. Class Balancing with SMOTE (Inside CV Folds)
+```
+SMOTE [13] is applied exclusively inside the training folds of each cross-validation split, generating synthetic
+minority samples independently per fold. This design prevents synthetic-sample leakage into validation folds
+```
+[16]. Balancing the training data from 863:166 (83.9%:16.1%) to 863:863 (50.0%:50.0%) ensures each fold’s
+```
+model sees balanced classes without contaminating evaluation.
+7
+3.7. Feature Selection
+Gradient Boosting feature importance, computed inside each training fold, is used to select the top 16 features.
+The selected features and their importance ranks are presented and their relative contributions are visualized in
+Figure 3.
+It is evident from Figure 3 that OverTime, MaritalStatus Single, and IsSingle rank as the three most informa-
+tive features. Four of the engineered features, namely IsSingle, SatisfactionScore, HasOvertime, and RiskScore,
+appear among the top 16, providing preliminary evidence for the domain-driven feature engineering approach.
+Figure 3: Top-16 Gradient Boosting feature importance ranking.
+3.8. Base Machine Learning Models
+3.8.1. Logistic Regression
+Logistic Regression is a linear model that estimates the probability of a binary outcome using the sigmoid function,
+```
+P (y = 1|x) = 11+e−(β0+βT x) . It models the log-odds of the target as a linear combination of the input features. The
+```
+```
+coefficients (β) represent the change in log-odds for a one-unit increase in the corresponding feature, holding all
+```
+others constant. Despite its simplicity, LR is highly interpretable and often serves as a robust baseline, particularly
+```
+when regularized (L1/L2) to prevent overfitting on high-dimensional data [28]. In this study, L2 regularization is
+```
+used to penalize large coefficients.
+3.8.2. Random Forest
+```
+Random Forest is a bagging (Bootstrap Aggregating) ensemble of decision trees [19]. It constructs multiple
+```
+decision trees during training, where each tree is grown on a random bootstrap sample of the data, and at each
+```
+split, only a random subset of features is considered. This double randomization (bagging and feature subspace)
+```
+decorrelates the individual trees. The final prediction is obtained by averaging the probabilistic predictions of
+all trees. By aggregating the predictions of decorrelated trees, Random Forest significantly reduces variance and
+8
+mitigates the risk of overfitting compared to a single decision tree, while effectively capturing non-linear feature
+interactions.
+3.8.3. XGBoost
+```
+Extreme Gradient Boosting (XGBoost) is an advanced implementation of gradient-boosted decision trees [21].
+```
+Unlike Random Forest, which builds trees independently, XGBoost builds trees sequentially, where each new
+```
+tree is trained to correct the residual errors (pseudo-residuals) of the previous ensemble. XGBoost minimizes a
+```
+```
+regularized objective function that includes both a loss term (e.g., log-loss) and a complexity penalty for the trees
+```
+```
+(controlling the number of leaves and leaf weights). It utilizes a second-order Taylor approximation of the loss
+```
+```
+function to find optimal split points, which allows for highly efficient and accurate tree building, particularly on
+```
+sparse or structured tabular data.
+3.8.4. Gradient Boosting
+```
+Gradient Boosting is a sequential ensemble technique that fits new weak learners (typically shallow decision trees)
+```
+```
+to the negative gradient of the loss function [20]. At each iteration, the model computes the pseudo-residuals (the
+```
+```
+difference between true and predicted values) and fits a new tree to these residuals. The predictions of the new
+```
+```
+tree are then added to the ensemble, scaled by a learning rate (shrinkage parameter) to control the step size. This
+```
+iterative process allows the model to progressively minimize the loss function, capturing subtle nonlinear patterns
+while the shallow tree depth prevents individual trees from overfitting.
+3.8.5. Support Vector Machine
+```
+Support Vector Machine (SVM) is a margin-based classifier that seeks to find the optimal separating hyperplane
+```
+between classes [29]. The algorithm maximizes the margin—the distance between the hyperplane and the closest
+```
+data points from either class (the support vectors). For non-linearly separable data, a kernel trick (such as the
+```
+```
+Radial Basis Function, K(xi, xj ) = exp(−γ||xi − xj ||2)) is used to implicitly map the input features into a
+```
+higher-dimensional space where a linear separating hyperplane can be found. SVM is highly effective in high-
+```
+dimensional spaces and robust to overfitting, especially when the margin parameter (C) is properly tuned.
+```
+3.8.6. Extra Trees
+```
+Extremely Randomized Trees (Extra Trees) is an ensemble method similar to Random Forest, but with an ad-
+```
+ditional layer of randomization [30]. While Random Forest selects the optimal split threshold for each feature
+at a node, Extra Trees selects the split threshold completely at random for each candidate feature. This extreme
+randomization further decorrelates the trees and reduces variance, often resulting in faster training times and com-
+parable or superior generalization performance, particularly on noisy datasets.
+3.9. Hyperparameter Tuning and Objective Sensitivity
+GridSearchCV with 5-fold stratified cross-validation is applied to Random Forest, XGBoost, Gradient Boosting,
+and SVM. To test objective sensitivity, each model is tuned under five alternative scoring objectives: ROC-AUC,
+PR-AUC, F1, recall, and balanced accuracy. Search grids are listed in Table 7.
+9
+Table 6: Hyperparameter search grids.
+Model Parameter Grid
+```
+Random Forest n estimators: [200, 300, 500]; max depth: [8, 10, 12]; min samples leaf: [1,
+```
+2, 3]
+```
+XGBoost n estimators: [200, 300, 500]; max depth: [3, 4, 5]; learning rate: [0.03, 0.05,
+```
+0.10]
+```
+Gradient Boosting n estimators: [300, 500, 800]; learning rate: [0.02, 0.03, 0.05]; max depth: [2,
+```
+```
+3]; min samples leaf: [2, 3, 5]
+```
+```
+SVM C: [0.5, 1.0, 5.0, 10.0]; gamma: [scale, auto]
+```
+3.10. Ensemble Methods
+3.10.1. Soft Voting Ensemble
+Soft voting combines predictions from multiple base models via probability averaging [31]. The ensemble com-
+bines Random Forest, XGBoost, Extra Trees, and SVM. Soft voting produces more stable predictions than hard
+voting because it retains the confidence information encoded in predicted probabilities, allowing complementary
+learners to contribute proportionally to their certainty.
+3.10.2. Stacking Ensemble
+Stacked generalization [23] trains a Level-1 meta-learner on out-of-fold probability vectors produced by Level-0
+base models. In the proposed architecture, Gradient Boosting, XGBoost, and Random Forest serve as Level-0
+learners, and Logistic Regression serves as the Level-1 meta-learner. The two-layer design is illustrated in Figure
+4. Stacking exploits the complementary strengths of heterogeneous base learners by learning optimal combination
+weights at the meta-level, in contrast to voting which relies on fixed averaging weights.
+10
+Figure 4: Two-layer Stacking Ensemble architecture.
+3.10.3. Additional Ensemble Combinations
+Four extended ensemble combinations are examined, each pairing learners with complementary inductive biases.
+LightGBM [22], CatBoost [33], and AdaBoost [32] provide the boosting components in these combinations. The
+combinations are: Random Forest + LightGBM, Extra Trees + LightGBM, Extra Trees + CatBoost, and Random
+Forest + AdaBoost.
+```
+3.11. Threshold Optimization (Validation-Based)
+```
+Thresholds are selected on out-of-fold validation predictions, not on the test set. Thresholds from 0.30 to 0.70 are
+evaluated in 0.01 increments, and the value maximizing validation F1 is selected. The chosen threshold is then
+applied to the untouched holdout for one final evaluation.
+3.12. Evaluation Metrics
+```
+Metrics are reported across three families. Ranking performance is measured by ROC-AUC and PR-AUC (average
+```
+```
+precision). Classification performance is measured by accuracy, precision, recall, F1, balanced accuracy, and
+```
+MCC. Decision performance is measured by expected cost under a cost matrix C = CF N |F N | + CF P |F P | and
+by Net Benefit in decision-curve analysis.
+11
+```
+Precision = T PT P + F P (2)
+```
+```
+Recall = T PT P + F N (3)
+```
+```
+F1 = 2 · Precision · RecallPrecision + Recall (4)
+```
+Balanced Acc. = 12
+```
+(︃T P
+```
+T P + F N +
+T N
+T N + F P
+```
+)︃
+```
+```
+(5)
+```
+```
+MCC = T P · T N − F P · F N√︁
+```
+```
+(T P + F P )(T P + F N )(T N + F P )(T N + F N )
+```
+```
+(6)
+```
+4. Results and Discussion
+4.1. Dataset Characteristics and Attrition Distribution
+It is evident from Table 3 that the association between each candidate feature and attrition varies substantially
+```
+across features. Overtime shows the largest categorical association (OR = 11.1 [7.9–15.7]). Continuous features
+```
+```
+show moderate effect sizes (SMD 0.17 to 0.46). These univariate statistics motivate the domain-driven engineered
+```
+features described in Table 5, but do not establish causal relationships.
+4.2. Feature Engineering and SMOTE Ablation
+To test the marginal value of each pipeline component, an ablation study was performed under identical 5-fold
+cross-validation. The results are reported in Table 8.
+It is evident from Table 8 that each pipeline component contributes measurably to the final result. Feature engi-
+neering adds 0.033 F1, in-fold SMOTE adds 0.040 F1, and tuning adds 0.020 F1. Interestingly, the final Stacking
+```
+ensemble actually degraded performance compared to the tuned base Gradient Boosting model (F1 dropped from
+```
+```
+0.5451 to 0.5200), suggesting that ensemble complexity did not yield a benefit under this strict validation pro-
+```
+tocol. The largest single gain is observed from correct in-fold SMOTE application, confirming that leakage-free
+imbalance handling is essential.
+Table 7: Ablation study: contribution of each pipeline component. Values are mean±SD across 5 folds.
+Configuration ROC-AUC PR-AUC F1 Recall
+Raw features 0.8116 ± 0.03 0.5925 ± 0.05 0.4520 ± 0.04 0.3372 ± 0.04
+- Feature engineering 0.8090 ± 0.04 0.5951 ± 0.03 0.4849 ± 0.07 0.3916 ± 0.08
+- SMOTE + FE (in-fold) 0.8160 ± 0.03 0.5965 ± 0.03 0.5251 ± 0.04 0.4403 ± 0.07
+- SMOTE + FE + Tuning 0.8209 ± 0.02 0.6212 ± 0.03 0.5451 ± 0.06 0.4399 ± 0.07
+Final Stacking ensemble 0.7946 ± 0.03 0.5487 ± 0.05 0.5200 ± 0.03 0.5061 ± 0.04
+```
+4.3. Baseline Model Performance (Repeated 5×5 CV)
+```
+```
+Baseline model performance is reported in Table 9 as mean±SD across 25 fold evaluations (5-fold × 5 repetitions).
+```
+```
+It is evident from Table 9 that Logistic Regression achieves the highest cross-validated ROC-AUC (0.8008), F1
+```
+```
+(0.5174), and MCC (0.4428). Gradient Boosting achieves the highest PR-AUC (0.5624). Random Forest achieves
+```
+```
+high precision (0.5928) but lower recall (0.4070). The divergence between accuracy and minority-class detection
+```
+remains the central problem in attrition prediction.
+12
+Table 8: Base model performance. Mean ± SD across 5×5 CV folds.
+Model ROC-AUC PR-AUC Acc Prec Rec F1 Bal. Acc MCC
+LR 0.8008 ± .04 0.5435 ± .06 0.8604 0.5890 0.4649 0.5174 0.7007 0.4428
+RF 0.7994 ± .04 0.5468 ± .06 0.8581 0.5928 0.4070 0.4799 0.6760 0.4122
+XGB 0.7966 ± .04 0.5497 ± .07 0.8571 0.5776 0.4541 0.5061 0.6944 0.4298
+GB 0.8007 ± .04 0.5624 ± .07 0.8556 0.5729 0.4494 0.5013 0.6916 0.4241
+SVM 0.7948 ± .04 0.5138 ± .06 0.8484 0.5441 0.4035 0.4615 0.6688 0.3825
+ET 0.7739 ± .04 0.4710 ± .05 0.8462 0.5408 0.3661 0.4323 0.6523 0.3589
+4.4. Objective-Function Sensitivity
+The sensitivity of minority-class performance to the choice of tuning objective is examined in Table 10, using
+Gradient Boosting as the reference model.
+It is evident from Table 10 that the choice of tuning objective affects performance, though the differences are mod-
+```
+est. Tuning for ROC-AUC, Recall, and Balanced Accuracy all converged to similar holdout F1 scores (0.4304).
+```
+```
+This behaviour reflects the expected consequence of objective-function alignment; when the dataset is highly
+```
+imbalanced, the choice of scoring metric during tuning can only shift the precision-recall trade-off slightly.
+Table 9: Objective-function sensitivity: Gradient Boosting tuned under five scoring objectives. Holdout
+results reported.
+Tuning objective ROC-AUC PR-AUC Recall Precision F1
+ROC-AUC 0.7633 0.4573 0.4789 0.3908 0.4304
+PR-AUC 0.7654 0.4595 0.4648 0.3708 0.4125
+F1 0.7638 0.4525 0.4648 0.3793 0.4177
+Recall 0.7637 0.4583 0.4789 0.3908 0.4304
+Balanced accuracy 0.7633 0.4573 0.4789 0.3908 0.4304
+4.5. Ensemble Learning Performance
+Ensemble results are reported in Table 11.
+```
+It is evident from Table 11 that Logistic Regression achieves the highest F1 (0.5241), MCC (0.4307), and PR-
+```
+```
+AUC (0.5421) among all 11 evaluated models. The Stacking Ensemble achieves an F1 of 0.4531, significantly
+```
+```
+underperforming LR. SVM achieves the highest ROC-AUC (0.8009). The extended ensemble combinations
+```
+```
+(RF+LightGBM, ET+CatBoost, etc.) did not yield performance superior to the base models.
+```
+Table 10: Ensemble model performance. Holdout results. Best pipeline model and best extended model
+are distinguished.
+Model ROC-AUC PR-AUC Acc Rec F1 MCC
+LR 0.7771 0.5421 0.8435 0.5352 0.5241 0.4307
+SVM 0.8009 0.5276 0.8503 0.4648 0.5000 0.4142
+ET 0.7822 0.5112 0.8503 0.3944 0.4590 0.3818
+Stacking 0.7655 0.4724 0.8413 0.4085 0.4531 0.3646
+Voting 0.7850 0.5019 0.8481 0.3803 0.4463 0.3688
+ET+CatBoost 0.7829 0.5043 0.8503 0.3662 0.4407 0.3686
+RF+AdaBoost 0.7727 0.4790 0.8435 0.3662 0.4298 0.3493
+RF 0.7664 0.4784 0.8413 0.3662 0.4262 0.3432
+GB 0.7775 0.4770 0.8231 0.3803 0.4091 0.3070
+RF+LightGBM 0.7562 0.4541 0.8413 0.3380 0.4068 0.3286
+XGB 0.7595 0.4440 0.8163 0.3239 0.3622 0.2591
+13
+4.5.1. Statistical Significance Testing
+Model comparison is performed using three complementary statistical tests. The DeLong test [34] compares
+areas under two correlated ROC curves. McNemar’s test compares paired binary classification outcomes. Paired
+bootstrap confidence intervals with 2,000 resamples estimate the sampling distribution of metric differences.
+Applied to the Stacking Ensemble and the strongest baseline Gradient Boosting, the results are as follows. The
+```
+DeLong test yields p = 0.786 (Stacking ROC-AUC = 0.7655 vs GB ROC-AUC = 0.7775), indicating no signif-
+```
+icant difference in ranking performance. McNemar’s test yields p = 0.2386. The paired bootstrap yields ∆F1
+= −0.0012 with a 95% CI of [−0.0481, 0.0526]. Because the confidence interval includes zero and the p-values
+are well above 0.05, it is concluded that the Stacking Ensemble does not statistically significantly outperform the
+simpler Gradient Boosting model or Logistic Regression on this dataset.
+4.5.2. Ensemble Diversity
+The rationale for ensemble integration depends on the degree to which base learners make complementary errors.
+The pairwise correlation matrix of holdout predictions is reported in Figure 5.
+It is evident from Figure 5 that the tree-based models Random Forest, XGBoost, and Gradient Boosting show
+```
+correlations between 0.88 and 0.90, while SVM and Logistic Regression are more diverse (correlations around
+```
+```
+0.65 to 0.85). This high correlation among the base learners of the Stacking Ensemble explains the modest gain
+```
+```
+(and sometimes degradation) from stacking: the models are not sufficiently decorrelated to yield large ensemble
+```
+improvements.
+Figure 5: Pairwise correlation matrix of holdout predictions.
+```
+4.6. Business-Oriented Model Evaluation (Cost-Sensitive Framework)
+```
+The cost-sensitive decision framework defines expected cost as:
+```
+Expected Cost = CF N · |F N | + CF P · |F P | (7)
+```
+The optimal model under four plausible FN:FP cost ratios is reported in Table 12.
+```
+It is evident from Table 12 that Logistic Regression achieves the lowest expected cost across all FN:FP ratios (1:1,
+```
+```
+2:1, 5:1, and 10:1). In retention contexts where missing an at-risk employee is five to ten times more costly than a
+```
+false alarm, Logistic Regression remains the optimal model.
+14
+Table 11: Cost-sensitive model selection. Lower expected cost is better.
+Model FN:FP=1:1 2:1 5:1 10:1
+LR 69.0 102.0 201.0 366.0
+RF 70.0 115.0 250.0 475.0
+GB 78.0 122.0 254.0 474.0
+Stacking 70.0 112.0 238.0 448.0
+RF+LightGBM 70.0 117.0 258.0 493.0
+4.7. Threshold Optimization and Calibration
+Threshold-level metrics for the Stacking Ensemble, obtained using out-of-fold validation predictions, are reported
+in Table 13.
+It is evident from Table 13 that while the out-of-fold validation selected 0.42 as the optimal threshold, applying
+```
+this threshold to the holdout set actually yielded a lower F1-score (0.4085) compared to the default threshold of
+```
+```
+0.50 (0.4531). This highlights the variance in threshold selection and suggests that for the Stacking Ensemble, the
+```
+default 0.50 threshold performed better on unseen data.
+```
+Table 12: Threshold optimization results for the Stacking Ensemble (validation-based selection).
+```
+Threshold Precision Recall F1-Score
+0.30 0.3889 0.4930 0.4348
+0.35 0.4074 0.4648 0.4342
+0.40 0.4026 0.4366 0.4189
+```
+0.42 (Optimal) 0.4085 0.4085 0.4085
+```
+0.50 0.5088 0.4085 0.4531
+Calibration is assessed using the reliability diagram in Figure 6. The Brier score is 0.1254 and the Expected
+```
+Calibration Error (ECE) is 0.0687, indicating reasonable calibration across deciles.
+```
+Decision Curve Analysis is presented in Figure 7. Logistic Regression was not included in this specific plot
+because the Stacking model was the designated focus for threshold analysis, but the cost table confirms LR’s
+superiority.
+Figure 6: Calibration plot for the Stacking Ensemble.
+15
+Figure 7: Decision Curve Analysis.
+4.8. Confusion Matrix Analysis
+The confusion matrices for the evaluated models provide granular insight into the trade-off between sensitivity
+```
+and specificity. Figure 8 displays the confusion matrix for the champion model (Logistic Regression) evaluated
+```
+```
+on the holdout set at the default threshold of 0.50. The matrix illustrates the exact counts of true positives (33),
+```
+```
+true negatives (349), false positives (31), and false negatives (28), confirming the high false-negative rate (missing
+```
+```
+at-risk employees) inherent in this heavily imbalanced dataset.
+```
+```
+Figure 8: Confusion matrix for the champion model (Logistic Regression) at threshold 0.50, illustrating
+```
+the distribution of correctly and incorrectly classified employees.
+4.9. Empirical Performance Boundary and Sources of Predictive Uncertainty
+The best observed accuracy across the configurations evaluated in this study is 89.34%. This is interpreted as an
+empirical performance boundary for the current feature set and experimental design, rather than as a theoretical
+upper bound. Substantial unexplained variation remains, reflecting unobserved organizational factors, managerial
+relationships, external labor-market conditions, personal circumstances, and temporal changes.
+4.10. Error Analysis
+```
+The error patterns of the champion model (Logistic Regression) are characterized in Table 14.
+```
+16
+It is evident from Table 14 that the false-negative profile suggests the model cannot distinguish satisfied employees
+who receive external offers from genuine stayers, a limitation rooted in the absence of external market data. The
+false-positive profile suggests the model may conflate short-tenure junior employees with genuine flight risk.
+```
+Table 13: Error analysis for the champion model (Logistic Regression, threshold 0.50).
+```
+Category Characteristics
+```
+False negatives (n = 28) Over-represented: high-income (50%), high job satisfaction
+```
+```
+(66.7%), overtime workers (47.6%).
+```
+```
+False positives (n = 31) Over-represented: low tenure below 3 years (50%), overtime work-
+```
+```
+ers (40.5%).
+```
+4.11. Subgroup Fairness Analysis
+Subgroup performance of the champion model is reported in Table 15.
+It is evident from Table 15 that performance varies dramatically across subgroups. While the model performs well
+```
+for young employees (Age ≤ 30, F1 = 0.603), it completely fails to identify senior employees at risk. For Job
+```
+Level 3+, the recall and F1-score are exactly 0.00, meaning the model missed every single senior employee who
+```
+left the organization. This is a critical fairness failure. Algorithmic fairness is not claimed; instead, this analysis
+```
+highlights a severe limitation in deploying the model for retention decisions regarding senior staff.
+```
+Table 14: Subgroup performance of the champion model (Logistic Regression, threshold 0.50).
+```
+Subgroup n Recall Precision F1 FPR
+```
+Gender = Male 272 0.356 0.432 0.390 0.093
+```
+```
+Gender = Female 169 0.500 0.382 0.433 0.147
+```
+Age ≤ 30 111 0.679 0.543 0.603 0.193
+Age 31–45 250 0.290 0.346 0.316 0.078
+Age > 45 80 0.083 0.100 0.091 0.132
+Job level 1–2 333 0.475 0.420 0.446 0.147
+Job level 3+ 108 0.000 0.000 0.000 0.020
+5. Discussion
+5.1. Principal Findings
+Four findings emerge from this study.
+The first finding is that accuracy is inadequate under severe imbalance. Random Forest achieves high accuracy
+but low recall, missing nearly two-thirds of at-risk employees. In retention-support contexts, this is operationally
+unacceptable.
+The second finding is that pipeline order matters. SMOTE applied inside cross-validation folds, rather than before
+splitting, yields a substantial F1 gain. Feature engineering provides a further gain. This confirms that a leakage-
+free protocol is not merely a methodological nicety, but changes substantive conclusions.
+The third finding is that complex ensemble gains are not guaranteed. Contrary to the expectation that Stacking
+would dominate, Logistic Regression achieved the best F1 and MCC. Statistical testing confirmed that the Stacking
+```
+Ensemble did not significantly outperform simpler models (DeLong p = 0.786). Correlation analysis shows tree-
+```
+based learners are highly correlated, explaining the lack of ensemble benefit.
+The fourth finding is that subgroup fairness is severely compromised. The model achieves 0.00 recall for senior
+```
+employees (Job Level 3+), meaning it fails entirely to flag them for retention interventions.
+```
+17
+5.2. Accuracy Versus Minority-Class Detection
+```
+Random Forest’s high accuracy reflects the majority class (83.88% base rate) and obscures its failure on the
+```
+minority class. This is not a tuning artifact, but the expected behavior of classifiers trained under severe imbalance.
+PR-AUC is more informative than ROC-AUC in this regime [26]: PR-AUC varies significantly across models
+against a 0.138 baseline, whereas ROC-AUC remains relatively stable.
+5.3. Ensemble Learning and Model Complementarity
+The analysis contradicts the common assumption that complex ensembles always win. Statistical comparison
+```
+between Stacking and the strongest baseline (Gradient Boosting) shows no significant difference in performance.
+```
+This is interpreted as evidence that for this small, highly imbalanced tabular dataset, the added complexity of
+stacking does not justify its cost, and simpler models like Logistic Regression generalize better.
+5.4. Objective-Function Sensitivity
+The choice of tuning objective affects the precision-recall trade-off, but does not fundamentally change the ranking
+of the best models. This demonstrates that optimization objectives must be chosen to match deployment priorities.
+5.5. Threshold Optimization for Retention Decisions
+The validation-selected threshold of 0.42 degraded holdout performance compared to the default 0.50 for the
+Stacking model. This highlights the variance inherent in threshold selection on small datasets and suggests that
+threshold optimization should be evaluated cautiously.
+5.6. Business-Oriented Model Selection
+The cost-sensitive framework confirms that Logistic Regression is the optimal model across all evaluated FN:FP
+ratios, providing a robust, defensible choice for HR deployment.
+5.7. Explainability and Predictive Features
+Feature-importance analysis identifies overtime, marital status, and stock option level as features most strongly
+associated with model predictions. Causal language is deliberately avoided: the model identifies predictive asso-
+ciations, not causal drivers.
+5.8. Empirical Performance Boundary
+The observed accuracy boundary reflects the current feature set and experimental design. Substantial unexplained
+variation remains, and this is identified as an empirical performance boundary rather than a theoretical ceiling.
+5.9. Comparison with Previous Studies
+The results are broadly consistent with prior work in terms of the importance of overtime and satisfaction, but
+```
+diverge regarding ensemble superiority. Govindarajan et al. [1] reported 95.0% accuracy with a hybrid model;
+```
+the highest observed accuracy in this study is 89.34%. This study provides a stricter benchmark by emphasizing
+PR-AUC, recall, and statistical validation.
+18
+5.10. Practical Implications for HR Decision Support
+```
+The following workflow is recommended: employees are scored with the champion model (Logistic Regression);
+```
+```
+the operating threshold is selected based on the organizational FN:FP cost ratio; top-ranked employees are routed
+```
+to HR review. However, given the 0.00 recall for senior employees, the model should not be deployed for that
+subgroup without further feature engineering or data collection. The model should support, rather than replace,
+human decision-making.
+5.11. Limitations and Generalizability
+Several limitations apply. First, the study is based on a single benchmark dataset. Second, the design is cross-
+sectional. Third, external validity is uncertain. Fourth, SMOTE generates synthetic observations. Fifth, important
+organizational and psychological variables are absent. Sixth, calibration is reported only for the champion model.
+Seventh, model ranking depends on the operating threshold. Eighth, feature importance explains model behavior,
+not causal relationships. Ninth, the severe subgroup disparity for senior employees means the model is not fair or
+reliable across all populations. Tenth, organizational conditions change over time.
+6. Conclusion
+This research presented a methodologically rigorous machine learning pipeline for employee attrition prediction
+using the IBM HR Analytics dataset. A leakage-free protocol was designed in which SMOTE, feature selection,
+and hyperparameter tuning are embedded inside the cross-validation loop, eliminating synthetic-sample leakage.
+Baseline model performance was reported using repeated stratified 5-fold cross-validation with a full metric suite.
+```
+Surprisingly, Logistic Regression emerged as the champion model (F1 = 52.41%, Recall = 53.52%), outper-
+```
+forming complex ensembles. Statistical model comparison using DeLong tests, paired bootstrap intervals, and
+McNemar tests established that the Stacking Ensemble did not provide a statistically significant improvement
+over simpler baselines. A cost-sensitive decision framework confirmed Logistic Regression as the optimal choice
+across all FN:FP ratios. Threshold optimization revealed that validation-based threshold selection can occasion-
+ally degrade holdout performance due to sampling variance. Calibration analysis confirmed reasonable calibration,
+and Decision Curve Analysis demonstrated net benefit over default strategies.
+Most critically, subgroup fairness analysis revealed a severe disparity: the model achieved a 0.00 recall for senior
+```
+employees (Job Level 3+), completely failing to identify them as at-risk. This highlights an urgent need for fairness
+```
+auditing before deploying automated retention systems.
+Future work will proceed in five directions. First, temporal modeling will be pursued using longitudinal data.
+Second, external validation will be conducted on multi-organization datasets. Third, SHAP-based per-employee
+explainability will be integrated. Fourth, fairness-aware training will be investigated to address the severe sub-
+group disparities identified here. Fifth, drift monitoring and online recalibration mechanisms will be developed to
+maintain predictive reliability as organizational conditions change.
+Declarations
+```
+Funding: Not applicable.
+```
+Competing interests: The authors declare no competing interests.
+Data availability: The IBM HR Analytics dataset is publicly available on Kaggle. Processed data and code are
+available upon request.
+```
+Software: Python, scikit-learn, XGBoost, imbalanced-learn, Matplotlib, SHAP.
+```
+References
+```
+[1] Govindarajan, R., Kumar, N. K., Reddy, S. P., Pravallika, S., Dhatri, B., & Kumar, P. G. (2025). Predicting
+```
+employee attrition: A comparative analysis of machine learning models using the IBM HR dataset. Procedia
+Computer Science, 258, 4084–4093.
+19
+```
+[2] Eachempati, P., & Srivastava, P. (2021). Employer retention solution using multi-criteria decision-making
+```
+```
+and ensemble ML. Journal of Global Information Management, 29(6), 1–29.
+```
+```
+[3] Fallucchi, F., De Luca, E. W., Coladangelo, M., & Giuliano, R. (2020). Applying machine learning tech-
+```
+```
+niques to forecast employee attrition. Computers, 9(4), 86.
+```
+```
+[4] Alghamdi, H. S., et al. (2021). Employing ensemble learning to predict staff attrition. Journal of Machine
+```
+```
+Intelligence and Computing Learning, 11(2), 110–114.
+```
+```
+[5] Strohmeier, S., & Piazza, F. (2015). Domain driven data mining in human resource management: A review
+```
+```
+of current research. Expert Systems with Applications, 42(7), 3595–3610.
+```
+```
+[6] Jain, P. K., Jain, M., & Pamula, R. (2020). Explaining and predicting employees attrition. SN Applied Sci-
+```
+ences, 2, 1–11.
+```
+[7] Krishna, S., & Sidharth, S. (2022). Workforce analytics: Predicting employee attrition using ML. In Building
+```
+```
+Resilient Organizations (pp. 207–221). Routledge.
+```
+```
+[8] Provost, F. (2000). Machine learning from imbalanced data sets 101. In AAAI Workshop (pp. 1–3).
+```
+```
+[9] Fareed, M. M., et al. (2022). Utilising machine learning techniques to predict staff attrition. Applied Sciences,
+```
+```
+12(13), 6424.
+```
+```
+[10] Yahia, N. B., Colomo-Palacios, R., & Hlel, J. (2021). Big and deep data for people analytics. IEEE Access,
+```
+9, 60458–60467.
+```
+[11] Sharma, M. K., et al. (2022). Employee retention and attrition analysis. Webology, 19(2).
+```
+```
+[12] Jadhav, A., Mostafa, S. M., Elmannai, H., & Karim, F. K. (2022). An empirical assessment of data balancing
+```
+```
+techniques. Applied Sciences, 12(8), 3928.
+```
+```
+[13] Chawla, N. V., Bowyer, K. W., Hall, L. O., & Kegelmeyer, W. P. (2002). SMOTE: Synthetic minority over-
+```
+sampling technique. Journal of Artificial Intelligence Research, 16, 321–357.
+```
+[14] He, H., & Garcia, E. A. (2009). Learning from imbalanced data. IEEE TKDE, 21(9), 1263–1284.
+```
+```
+[15] Fern´andez, A., et al. (2018). Learning from imbalanced data sets. Springer.
+```
+```
+[16] Kaufman, S., Rosset, S., Perlich, C., & Stitelman, O. (2012). Leakage in data mining. ACM TKDD, 6(4),
+```
+1–21.
+```
+[17] van Esch, P., Black, J. S., & Arli, D. (2021). Job candidates’ reactions to AI- and human-based job interviews.
+```
+Journal of Business Research, 136, 122–135.
+```
+[18] Marler, J. H., & Boudreau, J. W. (2017). An evidence-based review of HR analytics. International Journal
+```
+```
+of Human Resource Management, 28(1), 3–26.
+```
+```
+[19] Breiman, L. (2001). Random forests. Machine Learning, 45(1), 5–32.
+```
+```
+[20] Friedman, J. H. (2001). Greedy function approximation: A gradient boosting machine. Annals of Statistics,
+```
+```
+29(5), 1189–1232.
+```
+```
+[21] Chen, T., & Guestrin, C. (2016). XGBoost: A scalable tree boosting system. In Proc. 22nd ACM SIGKDD
+```
+```
+(pp. 785–794).
+```
+```
+[22] Ke, G., et al. (2017). LightGBM: A highly efficient gradient boosting decision tree. In NeurIPS (Vol. 30, pp.
+```
+```
+3146–3154).
+```
+```
+[23] Wolpert, D. H. (1992). Stacked generalization. Neural Networks, 5(2), 241–259.
+```
+```
+[24] Lundberg, S. M., & Lee, S.-I. (2017). A unified approach to interpreting model predictions. In NeurIPS (Vol.
+```
+```
+30, pp. 4765–4774).
+```
+```
+[25] Sheng, V. S., & Ling, C. X. (2006). Thresholding for cost-sensitive classifiers. In AAAI (pp. 476–481).
+```
+```
+[26] Saito, T., & Rehmsmeier, M. (2015). The precision-recall plot is more informative than the ROC plot. PLoS
+```
+```
+ONE, 10(3), e0118432.
+```
+```
+[27] IBM. (2017). IBM HR Analytics Employee Attrition & Performance dataset. Kaggle.
+```
+```
+[28] Hosmer, D. W., Lemeshow, S., & Sturdivant, R. X. (2013). Applied logistic regression (3rd ed.). Wiley.
+```
+20
+```
+[29] Cortes, C., & Vapnik, V. (1995). Support-vector networks. Machine Learning, 20(3), 273–297.
+```
+```
+[30] Geurts, P., Ernst, D., & Wehenkel, L. (2006). Extremely randomized trees. Machine Learning, 63(1), 3–42.
+```
+```
+[31] Zhou, Z.-H. (2012). Ensemble methods: Foundations and algorithms. Chapman & Hall/CRC.
+```
+```
+[32] Freund, Y., & Schapire, R. E. (1997). A decision-theoretic generalization of on-line learning. Journal of
+```
+```
+Computer and System Sciences, 55(1), 119–139.
+```
+```
+[33] Prokhorenkova, L., et al. (2018). CatBoost: Unbiased boosting with categorical features. In NeurIPS (Vol.
+```
+```
+31, pp. 6638–6648).
+```
+```
+[34] DeLong, E. R., DeLong, D. M., & Clarke-Pearson, D. L. (1988). Comparing areas under ROC curves.
+```
+```
+Biometrics, 44(3), 837–845.
+```
+```
+[35] Minbaeva, D. (2018). Building credible human capital analytics. Human Resource Management, 57(3), 701–
+```
+713.
+21

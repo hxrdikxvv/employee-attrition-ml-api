@@ -9,4 +9,8 @@ services:
     healthCheckPath: /health
     envVars:
       - key: API_KEY
-        sync: false
+        sync: false          # Set manually in Render dashboard — never commit this value
+      - key: CORS_ORIGINS
+        value: ""            # Leave empty; same-origin requests work without this on Render
+      - key: PORT
+        value: "8000"        # Render overrides this automatically; declared here for clarity
