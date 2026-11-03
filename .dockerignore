@@ -9,7 +9,6 @@ __pycache__/
 *.ipynb
 notebooks/
 scratch/
-frontend/node_modules/
-frontend/dist/
+frontend/
 results/**/cache/
 *.log

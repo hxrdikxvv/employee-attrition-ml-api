@@ -500,8 +500,14 @@ for name, model in base_models.items():
 cv_df = pd.DataFrame([{"Model": n, **{k: f"{v[0]:.4f} +- {v[1]:.3f}" for k,v in m.items()}} for n,m in cv_results.items()])
 cv_df.to_csv(TABLES/"cv_5x5_results.csv", index=False)
 print(cv_df.to_string(index=False))
-champion_name = max(cv_results, key=lambda name: cv_results[name]["F1"][0])
-comparison_name = next(name for name in sorted(cv_results, key=lambda n: cv_results[n]["F1"][0], reverse=True) if name != champion_name)
+# The final research paper designates Logistic Regression as the champion. Keep
+# the CV ranking as an evaluation result, but do not silently replace the paper's
+# selected deployment model with whichever model wins a later rerun.
+champion_name = "LR"
+comparison_name = max(
+    (name for name in cv_results if name != champion_name),
+    key=lambda name: cv_results[name]["F1"][0],
+)
 
 # ═══════════════════════════════════════════════════════════════════════
 # STEP 8 — Objective-function sensitivity (FIXED: Use ImbPipeline)
@@ -797,7 +803,6 @@ summary_df = pd.DataFrame(all_rows).sort_values("F1", ascending=False).reset_ind
 summary_df["Rank"] = summary_df.index + 1
 summary_df.to_csv(TABLES/"final_summary.csv", index=False)
 
-champion_name = max(cv_results, key=lambda name: cv_results[name]["F1"][0])
 champ = summary_df.loc[summary_df["Model"] == champion_name].iloc[0]
 elapsed   = (time.time()-t0)/60
 
@@ -827,7 +832,7 @@ print("="*64)
 meta = {
     "champion_model":     champion_name,
     "serving_threshold":  SERVING_THRESHOLD,
-    "selection_basis":    "highest mean repeated-stratified-CV F1 among the six base models",
+    "selection_basis":    "Logistic Regression champion as designated by RESEARCH_PAPER_FINAL; CV and holdout rankings are reported separately",
     "validation_scope":   "single random holdout from the IBM HR Analytics dataset; external and temporal validation not performed",
     "training_numeric_ranges": {
         col: {"min": float(X_train_raw[col].min()), "max": float(X_train_raw[col].max())}

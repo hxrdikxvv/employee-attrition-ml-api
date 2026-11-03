@@ -193,7 +193,12 @@
     <div class="layout">
       <form id="employee-form" class="form-panel">
         <section class="section">
-          <div class="section-head"><span class="section-number">01</span><h2>Employee profile</h2></div>
+          <div class="section-head" style="justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 11px;">
+              <span class="section-number">01</span><h2>Employee profile</h2>
+            </div>
+            <button id="sample-btn" type="button" style="background: var(--accent-soft); border: 1px solid var(--border-subtle); color: var(--accent-strong); font-size: 11px; font-weight: 600; padding: 5px 11px; border-radius: 5px; cursor: pointer;">Fill sample data</button>
+          </div>
           <div class="fields">
             <div class="field"><label for="Age">Age</label><input id="Age" name="Age" type="number" min="18" max="100" placeholder="e.g. 41" required></div>
             <div class="field"><label for="MaritalStatus">Marital status</label><select id="MaritalStatus" name="MaritalStatus" required><option value="" selected disabled>Select status</option><option>Single</option><option>Married</option><option>Divorced</option></select></div>
@@ -228,8 +233,8 @@
         <div class="api-row">
           <div class="field api-field">
             <div class="api-label"><label for="api-key">Service API key</label></div>
-            <div class="key-input"><input id="api-key" type="password" autocomplete="off" placeholder="Paste API key" required><button id="key-toggle" class="key-toggle" type="button" aria-label="Show API key" aria-controls="api-key" aria-pressed="false">Show</button></div>
-            <span class="field-note">Used for this request only; it is not saved.</span>
+            <div class="key-input"><input id="api-key" type="password" autocomplete="off" placeholder="Paste API key (if required)"><button id="key-toggle" class="key-toggle" type="button" aria-label="Show API key" aria-controls="api-key" aria-pressed="false">Show</button></div>
+            <span class="field-note">Required only if API_KEY is set in service environment.</span>
           </div>
           <button id="predict-button" class="primary" type="submit"><span>Run prediction</span><span class="button-arrow" aria-hidden="true">→</span></button>
         </div>
@@ -302,6 +307,25 @@
       document.querySelector('#model-count').textContent = `${data.models.length} models ready`;
     }).catch(() => { document.querySelector('#model-count').textContent = 'Models unavailable'; });
 
+    
+    document.querySelector('#sample-btn')?.addEventListener('click', () => {
+      document.querySelector('#Age').value = '35';
+      document.querySelector('#MaritalStatus').value = 'Single';
+      document.querySelector('#MonthlyIncome').value = '5993';
+      document.querySelector('#StockOptionLevel').value = '0';
+      document.querySelector('#YearsWithCurrManager').value = '5';
+      document.querySelector('#Department').value = 'Sales';
+      document.querySelector('#JobRole').value = 'Sales Executive';
+      document.querySelector('#JobLevel').value = '2';
+      document.querySelector('#BusinessTravel').value = 'Travel_Rarely';
+      document.querySelector('#OverTime').value = 'Yes';
+      document.querySelector('#JobInvolvement').value = '3';
+      document.querySelector('#WorkLifeBalance').value = '1';
+      document.querySelector('#JobSatisfaction').value = '4';
+      document.querySelector('#EnvironmentSatisfaction').value = '2';
+      document.querySelector('#RelationshipSatisfaction').value = '1';
+    });
+
     form.addEventListener('submit', async event => {
       event.preventDefault();
       if (!form.reportValidity()) return;
@@ -316,9 +340,13 @@
           key, ['Age','MonthlyIncome','StockOptionLevel','YearsWithCurrManager','JobLevel','JobInvolvement','WorkLifeBalance','JobSatisfaction','EnvironmentSatisfaction','RelationshipSatisfaction'].includes(key) ? Number(value) : value
         ]));
         delete payload['api-key'];
+        const headers = { 'Content-Type': 'application/json' };
+        if (keyInput.value && keyInput.value.trim()) {
+          headers['Authorization'] = `Bearer ${keyInput.value.trim()}`;
+        }
         const response = await fetch(`/predict/${encodeURIComponent(modelSelect.value)}`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${keyInput.value}` },
+          headers: headers,
           body: JSON.stringify(payload)
         });
         const result = await response.json();
